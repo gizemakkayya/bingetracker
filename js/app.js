@@ -1787,7 +1787,8 @@ export function renderNotifications() {
 }
 window.renderNotifications = renderNotifications;
 
-export function toggleNotificationDropdown() {
+export function toggleNotificationDropdown(e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
   const panel = document.getElementById('notification-dropdown');
   if (!panel) return;
   const isHidden = panel.classList.contains('hidden');
@@ -1806,10 +1807,12 @@ export function closeNotificationDropdown() {
 }
 window.closeNotificationDropdown = closeNotificationDropdown;
 
-export function markAllNotificationsAsRead() {
+export function markAllNotificationsAsRead(e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
   const list = getNotifications();
   list.forEach(n => n.read = true);
   saveNotifications(list);
+  closeNotificationDropdown();
 }
 window.markAllNotificationsAsRead = markAllNotificationsAsRead;
 
