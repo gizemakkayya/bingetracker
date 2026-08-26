@@ -2236,13 +2236,12 @@ export function toggleFollowUser(userId) {
 }
 window.toggleFollowUser = toggleFollowUser;
 
-export function openFriendProfile(userId, filter = 'all') {
+export function openFriendProfile(userId, filter = 'tv') {
   const allUsers = getSocialUsers();
   const user = allUsers.find(u => u.id === userId);
   if (!user) return;
 
   activeFriendModalUser = user;
-  friendModalFilter = filter;
 
   const backdrop = document.getElementById('friend-modal-backdrop');
   const bodyEl = document.getElementById('friend-modal-body');
@@ -2251,16 +2250,19 @@ export function openFriendProfile(userId, filter = 'all') {
   const following = getFollowingUserIds();
   const isFollowing = following.has(user.id);
 
-  // Filter friend's watchlist items
-  const allItems = user.watchlist || [];
-  let filteredItems = allItems;
-  if (filter !== 'all') {
-    filteredItems = allItems.filter(i => i.status === filter);
-  }
+  // Filter friend's watched & watching items only (exclude to-watch / watchlist)
+  const watchedOrWatching = (user.watchlist || []).filter(i => i.status === 'watched' || i.status === 'watching');
+  const seriesItems = watchedOrWatching.filter(i => i.media_type === 'tv');
+  const movieItems = watchedOrWatching.filter(i => i.media_type === 'movie');
 
-  const watchingCount = allItems.filter(i => i.status === 'watching').length;
-  const watchedCount = allItems.filter(i => i.status === 'watched').length;
-  const watchlistCount = allItems.filter(i => i.status === 'watchlist').length;
+  // Active filter ('tv' or 'movie')
+  let curFilter = filter;
+  if (curFilter !== 'tv' && curFilter !== 'movie') {
+    curFilter = seriesItems.length ? 'tv' : (movieItems.length ? 'movie' : 'tv');
+  }
+  friendModalFilter = curFilter;
+
+  const filteredItems = curFilter === 'tv' ? seriesItems : movieItems;
 
   const currentUserId = currentUser?.id;
   const currentUsername = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
@@ -2315,12 +2317,12 @@ export function openFriendProfile(userId, filter = 'all') {
           <!-- Stat Strip -->
           <div class="friend-hero-stats-row">
             <div class="hero-stat-card">
-              <span class="h-stat-num">${user.stats.movies}</span>
-              <span class="h-stat-label">Film</span>
+              <span class="h-stat-num">${user.stats.series || seriesItems.length}</span>
+              <span class="h-stat-label">Dizi</span>
             </div>
             <div class="hero-stat-card">
-              <span class="h-stat-num">${user.stats.series}</span>
-              <span class="h-stat-label">Dizi</span>
+              <span class="h-stat-num">${user.stats.movies || movieItems.length}</span>
+              <span class="h-stat-label">Film</span>
             </div>
             <div class="hero-stat-card">
               <span class="h-stat-num">${user.stats.hours}</span>
@@ -2337,23 +2339,19 @@ export function openFriendProfile(userId, filter = 'all') {
       <!-- Watchlist Section Header -->
       <div class="friend-watchlist-section-header">
         <h3 class="friend-section-title">
-          <i data-lucide="bookmark" class="icon-sm"></i>
-          <span>${escHtml(user.name.split(' ')[0])}'in İzleme Listesi (${allItems.length})</span>
+          <i data-lucide="${curFilter === 'tv' ? 'tv' : 'film'}" class="icon-sm"></i>
+          <span>${escHtml(user.name.split(' ')[0])}'in İzlediği ${curFilter === 'tv' ? 'Diziler' : 'Filmler'} (${filteredItems.length})</span>
         </h3>
 
-        <!-- Filter Pills -->
+        <!-- Filter Pills: Only TV and Movies -->
         <div class="friend-filter-pills">
-          <button type="button" class="f-pill ${filter === 'all' ? 'active' : ''}" onclick="filterFriendModalList('all')">
-            Tümü (${allItems.length})
+          <button type="button" class="f-pill ${curFilter === 'tv' ? 'active' : ''}" onclick="filterFriendModalList('tv')">
+            <i data-lucide="tv" class="icon-xxs" style="margin-right:3px"></i>
+            Diziler (${seriesItems.length})
           </button>
-          <button type="button" class="f-pill ${filter === 'watching' ? 'active' : ''}" onclick="filterFriendModalList('watching')">
-            🍿 İzliyor (${watchingCount})
-          </button>
-          <button type="button" class="f-pill ${filter === 'watched' ? 'active' : ''}" onclick="filterFriendModalList('watched')">
-            ✅ İzlendi (${watchedCount})
-          </button>
-          <button type="button" class="f-pill ${filter === 'watchlist' ? 'active' : ''}" onclick="filterFriendModalList('watchlist')">
-            📌 İzleyecek (${watchlistCount})
+          <button type="button" class="f-pill ${curFilter === 'movie' ? 'active' : ''}" onclick="filterFriendModalList('movie')">
+            <i data-lucide="film" class="icon-xxs" style="margin-right:3px"></i>
+            Filmler (${movieItems.length})
           </button>
         </div>
       </div>
@@ -2362,7 +2360,7 @@ export function openFriendProfile(userId, filter = 'all') {
       <div class="friend-items-grid">
         ${!filteredItems.length ? `
           <div class="friend-items-empty">
-            <p>Bu filtrede henüz içerik bulunmuyor.</p>
+            <p>${curFilter === 'tv' ? 'Henüz izlenen veya izlenmekte olan bir dizi bulunmuyor.' : 'Henüz izlenen bir film bulunmuyor.'}</p>
           </div>
         ` : filteredItems.map(item => {
           const poster = item.poster_path ? getPosterUrl(item.poster_path, 'w342') : null;
