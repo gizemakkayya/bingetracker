@@ -1,6 +1,7 @@
 {
   "name": "bingetracker-backend",
   "version": "2.0.0",
+  "type": "module",
   "description": "BingeTracker Modular Monolith Backend API",
   "main": "dist/server.js",
   "scripts": {

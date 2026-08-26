@@ -753,61 +753,703 @@ button.nav-link.active {
   margin-top: 3px;
 }
 
-/* ── Detail Modal ───────────────────────────────── */
-.detail-modal { max-width: 640px; }
-.detail-modal-hero {
+/* ── Premium Detail Modal Redesign ────────────────────────── */
+.detail-modal {
+  width: 95vw !important;
+  max-width: 740px !important;
+  max-height: 90vh !important;
+  border-radius: 24px !important;
+  background: #0d131f !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 35px rgba(16, 185, 129, 0.12) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 0 !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.detail-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.detail-modal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+
+
+/* Modal Top Backdrop Banner */
+.detail-modal-banner {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-color: #0b0f19;
   display: flex;
-  gap: var(--sp-5);
-  margin-bottom: var(--sp-6);
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 20px;
+  box-sizing: border-box;
 }
-.detail-poster {
-  width: 120px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-  aspect-ratio: 2/3;
-  object-fit: cover;
-  background: var(--clr-surface-2);
+
+.detail-modal-banner-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, #0d131f 0%, rgba(13, 19, 31, 0.6) 50%, rgba(0, 0, 0, 0.75) 100%);
+  pointer-events: none;
 }
-.detail-poster-placeholder {
-  width: 120px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  aspect-ratio: 2/3;
-  background: linear-gradient(145deg, var(--clr-surface-2), var(--clr-border));
+
+.modal-banner-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  color: var(--clr-text-muted);
-}
-.detail-info { flex: 1; }
-.detail-info h2 {
-  font-size: var(--text-xl);
-  font-weight: var(--fw-bold);
-  letter-spacing: -0.02em;
-  margin-bottom: var(--sp-2);
-}
-.detail-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-3);
-}
-.detail-overview {
-  font-size: var(--text-sm);
-  color: var(--clr-text-secondary);
-  line-height: var(--lh-loose);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
 }
 
-.detail-form { display: flex; flex-direction: column; gap: var(--sp-5); }
-.detail-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
-.detail-ep-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sp-3); }
+.modal-banner-close-btn:hover {
+  background: rgba(239, 68, 68, 0.8);
+  border-color: #ef4444;
+  transform: scale(1.08);
+}
+
+.detail-banner-content {
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+  padding-left: 135px; /* Space for the floating poster */
+}
+
+.detail-banner-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.detail-year-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.detail-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.detail-status-badge.ended {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.detail-tmdb-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.detail-banner-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 6px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.detail-genre-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detail-genre-pill {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ── Watch Providers (Nereden İzlenir) ────────────────────────── */
+.detail-providers-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.detail-providers-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detail-providers-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail-provider-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.detail-provider-badge:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.provider-logo-mini {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #000000;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.provider-name-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.detail-no-provider {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Modal Body Wrap */
+.detail-modal-body-wrap {
+  padding: 0 24px 24px 24px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Floating Poster Row */
+.detail-poster-floating-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: -55px;
+  position: relative;
+  z-index: 3;
+}
+
+.detail-floating-poster-wrap {
+  width: 115px;
+  height: 165px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+  border: 2.5px solid rgba(255, 255, 255, 0.18);
+  background: #111722;
+}
+
+.detail-floating-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-floating-poster-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e293b;
+  color: #64748b;
+}
+
+.detail-hero-actions {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 6px;
+}
+
+/* Option Switcher (Konusu / Oyuncular) */
+.detail-view-options {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 3px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-opt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.detail-opt-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.detail-opt-btn.active {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Tab content */
+.detail-tab-content-area {
+  min-height: 70px;
+}
+
+.detail-tab-pane {
+  display: none;
+}
+
+.detail-tab-pane.active {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+.detail-overview-text {
+  font-size: 0.875rem;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Cast horizontal scroll */
+.detail-cast-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 10px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+.detail-cast-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.detail-cast-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+.cast-card {
+  flex: 0 0 78px;
+  width: 78px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.15s ease;
+}
+
+.cast-card:hover {
+  transform: translateY(-2px);
+}
+
+.cast-photo-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #1e293b;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cast-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cast-photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+}
+
+.cast-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.2;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cast-character {
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1.15;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Controls Card */
+.detail-controls-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px 18px;
+}
+
+.detail-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.detail-control-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-control-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+/* Status Pill Buttons */
+.detail-status-pills {
+  display: flex;
+  gap: 8px;
+}
+
+.status-pill-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.status-pill-btn.active.watchlist {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #60a5fa;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
+}
+
+.status-pill-btn.active.watching {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fbbf24;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+}
+
+.status-pill-btn.active.watched {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #34d399;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+}
+
+/* Star Rating Row */
+.rating-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rating-score-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.star-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  color: #334155;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 1px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.star-btn:hover,
+.star-btn.hovered,
+.star-btn.active {
+  color: #fbbf24;
+  transform: scale(1.18);
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+/* Detail Notes */
+.detail-notes-input {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 14px !important;
+  padding: 10px 14px !important;
+  font-size: 0.85rem !important;
+  color: #f8fafc !important;
+  resize: vertical;
+  min-height: 55px;
+}
+
+.detail-notes-input:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Modal Footer Actions */
+.detail-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Fireworks / Celebration Overlay ────────────────────────── */
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 15, 26, 0.88);
+  backdrop-filter: blur(12px);
+  animation: fadeIn 0.3s ease;
+}
+
+.celebration-overlay.hidden {
+  display: none !important;
+}
+
+.fireworks-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.celebration-card {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(145deg, #111c2e 0%, #0c1422 100%);
+  border: 2px solid rgba(251, 191, 36, 0.45);
+  border-radius: 28px;
+  padding: 36px 32px 32px 32px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 50px rgba(251, 191, 36, 0.3);
+  animation: celebrationPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes celebrationPop {
+  0% { transform: scale(0.6) translateY(40px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.celebration-trophy-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 16px auto;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.1));
+  border: 2px solid #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+  animation: trophyPulse 2s infinite ease-in-out;
+}
+
+@keyframes trophyPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(251, 191, 36, 0.3); }
+  50% { transform: scale(1.06); box-shadow: 0 0 45px rgba(251, 191, 36, 0.6); }
+}
+
+.celebration-trophy {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.celebration-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 3px 12px;
+  border-radius: 9999px;
+  margin-bottom: 10px;
+}
+
+.celebration-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.celebration-status-pill {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #34d399;
+  margin: 0 0 12px 0;
+}
+
+.celebration-msg {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+
+.celebration-btn {
+  width: 100%;
+  padding: 12px 24px !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
+}
+
+@media (max-width: 640px) {
+  .detail-banner-content {
+    padding-left: 0;
+  }
+  .detail-poster-floating-row {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: -30px;
+  }
+  .detail-floating-poster-wrap {
+    width: 85px;
+    height: 125px;
+  }
+  .detail-hero-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .detail-controls-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
 
 /* ── Smooth animated TV tracker ─────────────────── */
 #modal-tv-tracker-wrap {

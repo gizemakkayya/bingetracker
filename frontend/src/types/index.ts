@@ -67,6 +67,14 @@ export interface TMDBMediaItem {
   number_of_seasons?: number;
   number_of_episodes?: number;
   genres?: Array<{ id: number; name: string }>;
+  credits?: {
+    cast?: Array<{
+      id: number;
+      name: string;
+      character?: string;
+      profile_path: string | null;
+    }>;
+  };
   seasons?: Array<{
     id: number;
     name: string;
@@ -74,6 +82,38 @@ export interface TMDBMediaItem {
     episode_count: number;
     poster_path: string | null;
   }>;
+  'watch/providers'?: {
+    results?: {
+      [countryCode: string]: {
+        link?: string;
+        flatrate?: Array<{
+          logo_path: string | null;
+          provider_id: number;
+          provider_name: string;
+        }>;
+        rent?: Array<{
+          logo_path: string | null;
+          provider_id: number;
+          provider_name: string;
+        }>;
+        buy?: Array<{
+          logo_path: string | null;
+          provider_id: number;
+          provider_name: string;
+        }>;
+        free?: Array<{
+          logo_path: string | null;
+          provider_id: number;
+          provider_name: string;
+        }>;
+        ads?: Array<{
+          logo_path: string | null;
+          provider_id: number;
+          provider_name: string;
+        }>;
+      };
+    };
+  };
 }
 
 export interface TMDBEpisode {

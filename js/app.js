@@ -540,13 +540,11 @@ window.openEditModal = function(itemId) {
 async function showDetailModal(tmdbId, mediaType, existingItem) {
   detailTarget = existingItem;
   const backdrop = document.getElementById('detail-modal-backdrop');
-  const titleEl  = document.getElementById('detail-modal-title');
   const bodyEl   = document.getElementById('detail-modal-body');
   backdrop.classList.remove('hidden');
 
   // Loading state
-  titleEl.textContent = 'Yükleniyor...';
-  bodyEl.innerHTML = `<div class="loading-wrap"><div class="spinner-lg"></div></div>`;
+  bodyEl.innerHTML = `<div class="loading-wrap" style="padding:var(--sp-12) 0"><div class="spinner-lg"></div></div>`;
 
   try {
     let details, title, genres, overview, posterPath, runtime;
@@ -567,34 +565,234 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
       runtime    = null; // will compute from episodes
     }
 
-    titleEl.textContent = existingItem ? 'Düzenle' : 'Listeye Ekle';
+    const poster = posterPath ? getPosterUrl(posterPath, 'w342') : null;
+    const backdropImg = details.backdrop_path ? `https://image.tmdb.org/t/p/w780${details.backdrop_path}` : (poster || '');
+    const year = (details.release_date || details.first_air_date || '').slice(0, 4);
+    const isEnded = details.status === 'Ended' || details.status === 'Canceled';
+    const statusTag = mediaType === 'tv' ? (isEnded ? 'Final Yaptı' : (details.status === 'Returning Series' ? 'Devam Ediyor' : '')) : '';
+    const ratingVal = details.vote_average ? details.vote_average.toFixed(1) : '';
 
-    const poster = posterPath ? getPosterUrl(posterPath, 'w185') : null;
-    const curStatus  = existingItem?.status  || 'watchlist';
+    const rawStatus  = existingItem?.status  || 'watchlist';
+    const curStatus  = (mediaType === 'tv' && rawStatus === 'watched') ? 'watching' : rawStatus;
     const curRating  = existingItem?.rating  || 0;
     const curNotes   = existingItem?.notes   || '';
     const curSeason  = existingItem?.current_season  || (mediaType === 'tv' ? 1 : null);
     const curEpisode = existingItem?.current_episode || (mediaType === 'tv' ? 1 : null);
     const totalSeasons  = details.number_of_seasons  || existingItem?.total_seasons;
     const totalEpisodes = details.number_of_episodes || existingItem?.total_episodes;
+    const castList = (details.credits?.cast || []).slice(0, 15);
+
+    // Extract Watch Providers (Platforms)
+    const wpResults = details['watch/providers']?.results || {};
+    const trProviders = wpResults['TR'];
+    const usProviders = wpResults['US'];
+    const activeCountry = trProviders || usProviders || Object.values(wpResults)[0];
+    const providersList = [];
+    const seenProviders = new Set();
+
+    if (activeCountry) {
+      const addP = (arr, typeName) => {
+        (arr || []).forEach(p => {
+          if (!seenProviders.has(p.provider_id)) {
+            seenProviders.add(p.provider_id);
+            providersList.push({
+              id: p.provider_id,
+              name: p.provider_name,
+              logo: p.logo_path ? `https://image.tmdb.org/t/p/w92${p.logo_path}` : null,
+              type: typeName
+            });
+          }
+        });
+      };
+      addP(activeCountry.flatrate, 'Yayın');
+      addP(activeCountry.free, 'Ücretsiz');
+      addP(activeCountry.ads, 'Reklamlı');
+      addP(activeCountry.buy, 'Satın Al');
+      addP(activeCountry.rent, 'Kirala');
+    }
 
     bodyEl.innerHTML = `
-      <div class="detail-modal-hero">
-        ${poster
-          ? `<img class="detail-poster" src="${poster}" alt="${escHtml(title)}">`
-          : `<div class="detail-poster-placeholder"><i data-lucide="${mediaType === 'movie' ? 'film' : 'tv'}" class="icon-xl"></i></div>`
-        }
-        <div class="detail-info">
-          <h2>${escHtml(title)}</h2>
-          <div class="detail-meta">
+      <!-- Top Backdrop Banner -->
+      <div class="detail-modal-banner" style="${backdropImg ? `background-image: url('${backdropImg}')` : ''}">
+        <div class="detail-modal-banner-gradient"></div>
+        <button type="button" class="modal-banner-close-btn" onclick="closeDetailModal()" aria-label="Kapat">
+          <i data-lucide="x" class="icon-sm"></i>
+        </button>
+
+        <div class="detail-banner-content">
+          <div class="detail-banner-badges">
             <span class="badge badge-${mediaType}">${mediaType === 'movie' ? 'Film' : 'Dizi'}</span>
-            ${genres.slice(0,3).map(g => `<span class="badge" style="background:var(--clr-surface-2);color:var(--clr-text-secondary)">${g}</span>`).join('')}
+            ${year ? `<span class="detail-year-badge">${year}</span>` : ''}
+            ${statusTag ? `<span class="detail-status-badge ${isEnded ? 'ended' : ''}">${statusTag}</span>` : ''}
+            ${ratingVal ? `<span class="detail-tmdb-badge">★ ${ratingVal} TMDB</span>` : ''}
           </div>
-          <p class="detail-overview">${escHtml(overview || 'Açıklama bulunamadı.')}</p>
+          <h2 class="detail-banner-title">${escHtml(title)}</h2>
+          <div class="detail-genre-tags">
+            ${genres.slice(0, 4).map(g => `<span class="detail-genre-pill">${escHtml(g)}</span>`).join('')}
+          </div>
+
+          <!-- Watch Providers (Platformlar) -->
+          <div class="detail-providers-bar">
+            <span class="detail-providers-title">
+              <i data-lucide="tv" class="icon-xxs"></i>
+              <span>Platformlar:</span>
+            </span>
+            ${providersList.length ? `
+              <div class="detail-providers-list">
+                ${providersList.slice(0, 5).map(p => `
+                  <div class="detail-provider-badge" title="${escHtml(p.name)} (${p.type})">
+                    ${p.logo ? `<img src="${p.logo}" alt="${escHtml(p.name)}" class="provider-logo-mini">` : ''}
+                    <span class="provider-name-text">${escHtml(p.name)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <span class="detail-no-provider">Platform bilgisi bulunamadı</span>
+            `}
+          </div>
         </div>
       </div>
 
-      <div class="detail-form">
+      <!-- Body Container -->
+      <div class="detail-modal-body-wrap">
+        <!-- Floating Poster Row -->
+        <div class="detail-poster-floating-row">
+          <div class="detail-floating-poster-wrap">
+            ${poster
+              ? `<img class="detail-floating-poster" src="${poster}" alt="${escHtml(title)}">`
+              : `<div class="detail-floating-poster-placeholder"><i data-lucide="${mediaType === 'movie' ? 'film' : 'tv'}" class="icon-xl"></i></div>`
+            }
+          </div>
+
+          <div class="detail-hero-actions">
+            <div class="detail-view-options">
+              <button type="button" class="detail-opt-btn active" id="btn-opt-overview" onclick="switchDetailTab('overview')">
+                <i data-lucide="align-left" class="icon-xs"></i>
+                <span>Konusu</span>
+              </button>
+              <button type="button" class="detail-opt-btn" id="btn-opt-cast" onclick="switchDetailTab('cast')">
+                <i data-lucide="users" class="icon-xs"></i>
+                <span>Oyuncular ${castList.length ? `(${castList.length})` : ''}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content Area -->
+        <div class="detail-tab-content-area">
+          <div id="detail-overview-content" class="detail-tab-pane active">
+            <p class="detail-overview-text">${escHtml(overview || 'Bu içerik için henüz Türkçe açıklama girilmemiş.')}</p>
+          </div>
+
+          <div id="detail-cast-content" class="detail-tab-pane">
+            ${castList.length ? `
+              <div class="detail-cast-scroll">
+                ${castList.map(actor => {
+                  const photo = actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : null;
+                  return `
+                    <div class="cast-card">
+                      <div class="cast-photo-wrap">
+                        ${photo 
+                          ? `<img src="${photo}" alt="${escHtml(actor.name)}" class="cast-photo" loading="lazy">` 
+                          : `<div class="cast-photo-placeholder"><i data-lucide="user" class="icon-sm"></i></div>`
+                        }
+                      </div>
+                      <div class="cast-name" title="${escHtml(actor.name)}">${escHtml(actor.name)}</div>
+                      <div class="cast-character" title="${escHtml(actor.character || 'Oyuncu')}">${escHtml(actor.character || 'Oyuncu')}</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `<p class="detail-overview-text" style="font-style:italic">Oyuncu kadrosu bulunamadı.</p>`}
+          </div>
+        </div>
+
+        <!-- Status & Rating Controls -->
+        <div class="detail-controls-card">
+          <input type="hidden" id="modal-status-val" value="${curStatus}">
+          <input type="hidden" id="modal-rating-val" value="${curRating}">
+
+          <div class="detail-controls-grid">
+            <!-- Status Buttons -->
+            <div class="detail-control-block">
+              <label class="detail-control-label">İzleme Durumu</label>
+              <div class="detail-status-pills">
+                <button type="button" class="status-pill-btn ${curStatus === 'watchlist' ? 'active watchlist' : ''}" data-status="watchlist" onclick="setModalStatus('watchlist')">
+                  <i data-lucide="bookmark" class="icon-xs"></i>
+                  <span>İzlenecek</span>
+                </button>
+                ${mediaType === 'tv' ? `
+                  <button type="button" class="status-pill-btn ${curStatus === 'watching' ? 'active watching' : ''}" data-status="watching" onclick="setModalStatus('watching')">
+                    <i data-lucide="play" class="icon-xs"></i>
+                    <span>İzleniyor</span>
+                  </button>
+                ` : `
+                  <button type="button" class="status-pill-btn ${curStatus === 'watched' ? 'active watched' : ''}" data-status="watched" onclick="setModalStatus('watched')">
+                    <i data-lucide="check-circle" class="icon-xs"></i>
+                    <span>İzlendi</span>
+                  </button>
+                `}
+              </div>
+            </div>
+
+            <!-- Star Rating -->
+            <div class="detail-control-block">
+              <div class="rating-header-row">
+                <label class="detail-control-label">Senin Puanın</label>
+                <span id="modal-rating-text" class="rating-score-text">${curRating ? `${curRating} / 10 ★` : 'Puan Ver'}</span>
+              </div>
+              <div id="modal-star-rating" class="star-rating-row">
+                ${[1,2,3,4,5,6,7,8,9,10].map(v => `
+                  <button type="button" class="star-btn ${v <= curRating ? 'active' : ''}" data-value="${v}" onclick="setModalRating(${v})">★</button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TV Tracker (if TV) -->
+        ${mediaType === 'tv' ? `
+          <div id="modal-tv-tracker-wrap" class="${curStatus === 'watchlist' ? 'collapsed' : ''}">
+            <div class="season-tracker-header">
+              <div class="season-header-left">
+                <label class="form-label" style="margin:0;display:flex;align-items:center;gap:6px">
+                  <i data-lucide="tv" class="icon-xs"></i>
+                  <span>Sezon & Bölüm Takibi</span>
+                </label>
+                <span id="season-progress-label" class="season-progress-label">Yükleniyor...</span>
+              </div>
+              <div class="season-header-right">
+                <select class="form-select season-select-sm" id="modal-season"></select>
+              </div>
+            </div>
+
+            <div class="modal-ep-progress-bar">
+              <div id="modal-season-progress-fill" class="modal-ep-progress-fill" style="width: 0%"></div>
+            </div>
+
+            <input type="hidden" id="modal-tracked-season" value="${curSeason || 1}">
+            <input type="hidden" id="modal-tracked-episode" value="${curEpisode || 1}">
+            <input type="hidden" id="modal-episode" value="${curEpisode || 1}">
+
+            <div class="modal-episodes-container" id="modal-episodes-list">
+              <div class="episodes-loading">
+                <div class="spinner-sm"></div>
+                <span>Bölümler yükleniyor...</span>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Notes -->
+        <div class="form-group" style="margin-top:var(--sp-2);margin-bottom:0">
+          <label class="detail-control-label" for="modal-notes" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <i data-lucide="message-square" class="icon-xs"></i>
+            <span>Notlarım & İncelemem</span>
+          </label>
+          <textarea class="form-textarea detail-notes-input" id="modal-notes" placeholder="Bu içerik hakkında düşünceleriniz, kaldığınız yer veya hatırlatıcı notlarınız...">${escHtml(curNotes)}</textarea>
+        </div>
+
+        <!-- Hidden Data Fields -->
         <input type="hidden" id="modal-tmdb-id" value="${tmdbId}">
         <input type="hidden" id="modal-media-type" value="${mediaType}">
         <input type="hidden" id="modal-title" value="${escHtml(title)}">
@@ -603,102 +801,40 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
         <input type="hidden" id="modal-runtime" value="${runtime || ''}">
         <input type="hidden" id="modal-total-seasons" value="${totalSeasons || ''}">
         <input type="hidden" id="modal-total-episodes" value="${totalEpisodes || ''}">
-        <input type="hidden" id="modal-rating-val" value="${curRating}">
 
-        <div class="detail-form-row">
-          <div class="form-group" style="margin-bottom:0">
-            <label class="form-label" for="modal-status">Durum</label>
-            <select class="form-select" id="modal-status">
-              <option value="watchlist" ${curStatus === 'watchlist' ? 'selected' : ''}>İzlenecek</option>
-              ${mediaType === 'tv' ? `<option value="watching" ${curStatus === 'watching' ? 'selected' : ''}>İzleniyor</option>` : ''}
-              <option value="watched"   ${curStatus === 'watched'   ? 'selected' : ''}>İzlendi</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label class="form-label">Puanın (1–10)</label>
-            <div id="modal-star-rating" class="star-rating" style="margin-top:6px">
-              ${[1,2,3,4,5,6,7,8,9,10].map(v => `
-                <span class="star ${v <= curRating ? 'active' : ''}" data-value="${v}" title="${v}">★</span>
-              `).join('')}
-            </div>
-          </div>
+        <!-- Footer Actions -->
+        <div class="detail-modal-footer">
+          ${existingItem
+            ? `<button type="button" class="btn btn-danger btn-sm" id="detail-delete-btn" onclick="deleteFromModal()">
+                <i data-lucide="trash-2" class="icon-xs"></i>
+                <span>Kaldır</span>
+              </button>`
+            : ''
+          }
+          <div style="flex:1"></div>
+          <button type="button" class="btn btn-secondary" onclick="closeDetailModal()">Vazgeç</button>
+          <button type="button" class="btn btn-primary" id="detail-save-btn" onclick="saveDetailModal()">
+            <i data-lucide="${existingItem ? 'check' : 'plus'}" class="icon-xs"></i>
+            <span class="btn-text">${existingItem ? 'Güncelle' : 'Listeye Ekle'}</span>
+          </button>
         </div>
-
-        ${mediaType === 'tv' ? `
-        <div id="modal-tv-tracker-wrap" class="${curStatus === 'watchlist' ? 'collapsed' : ''}">
-          <div class="season-tracker-header">
-            <div class="season-header-left">
-              <label class="form-label" style="margin:0;display:flex;align-items:center;gap:6px">
-                <i data-lucide="tv" class="icon-xs"></i>
-                <span>Sezon & Bölüm Takibi</span>
-              </label>
-              <span id="season-progress-label" class="season-progress-label">Yükleniyor...</span>
-            </div>
-            <div class="season-header-right">
-              <select class="form-select season-select-sm" id="modal-season"></select>
-            </div>
-          </div>
-
-          <div class="modal-ep-progress-bar">
-            <div id="modal-season-progress-fill" class="modal-ep-progress-fill" style="width: 0%"></div>
-          </div>
-
-          <input type="hidden" id="modal-tracked-season" value="${curSeason || 1}">
-          <input type="hidden" id="modal-tracked-episode" value="${curEpisode || 1}">
-          <input type="hidden" id="modal-episode" value="${curEpisode || 1}">
-
-          <div class="modal-episodes-container" id="modal-episodes-list">
-            <div class="episodes-loading">
-              <div class="spinner-sm"></div>
-              <span>Bölümler yükleniyor...</span>
-            </div>
-          </div>
-        </div>` : ''}
-
-        <div class="form-group" style="margin-bottom:0">
-          <label class="form-label" for="modal-notes">Notlarım</label>
-          <textarea class="form-textarea" id="modal-notes" placeholder="Bu içerik hakkında notlarınız...">${escHtml(curNotes)}</textarea>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-6)">
-        ${existingItem
-          ? `<button class="btn btn-danger btn-sm" id="detail-delete-btn" onclick="deleteFromModal()">
-              <i data-lucide="trash-2" class="icon-xs"></i>
-              <span>Kaldır</span>
-            </button>`
-          : ''
-        }
-        <button class="btn btn-secondary" onclick="closeDetailModal()" style="flex:1">İptal</button>
-        <button class="btn btn-primary" id="detail-save-btn" onclick="saveDetailModal()" style="flex:2">
-          <i data-lucide="${existingItem ? 'check' : 'plus'}" class="icon-xs"></i>
-          <span class="btn-text">${existingItem ? 'Güncelle' : 'Ekle'}</span>
-        </button>
       </div>
     `;
 
-    // Re-bind stars
-    bodyEl.querySelectorAll('#modal-star-rating .star').forEach(star => {
-      star.addEventListener('click', () => {
-        const val = parseInt(star.dataset.value);
-        document.getElementById('modal-rating-val').value = val;
-        updateStarDisplay(val, bodyEl);
+    renderIcons(bodyEl);
+
+    // Star rating hover events
+    bodyEl.querySelectorAll('#modal-star-rating .star-btn').forEach(star => {
+      star.addEventListener('mouseenter', () => {
+        const hoverVal = parseInt(star.dataset.value);
+        bodyEl.querySelectorAll('#modal-star-rating .star-btn').forEach(s => {
+          s.classList.toggle('hovered', parseInt(s.dataset.value) <= hoverVal);
+        });
       });
-      star.addEventListener('mouseenter', () => highlightStars(parseInt(star.dataset.value), bodyEl));
       star.addEventListener('mouseleave', () => {
-        const cur = parseInt(document.getElementById('modal-rating-val')?.value || 0);
-        updateStarDisplay(cur, bodyEl);
+        bodyEl.querySelectorAll('#modal-star-rating .star-btn').forEach(s => s.classList.remove('hovered'));
       });
     });
-
-    // Toggle episode tracker visibility smoothly based on status
-    const statusSelect = document.getElementById('modal-status');
-    const tvTrackerWrap = document.getElementById('modal-tv-tracker-wrap');
-    if (statusSelect && tvTrackerWrap) {
-      statusSelect.addEventListener('change', () => {
-        tvTrackerWrap.classList.toggle('collapsed', statusSelect.value === 'watchlist');
-      });
-    }
 
     // Populate TV Show Season and Interactive Episodes List
     if (mediaType === 'tv') {
@@ -834,11 +970,8 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
               if (hiddenEpTrackedInput) hiddenEpTrackedInput.value = currentSavedEpisode;
               if (hiddenEpInput) hiddenEpInput.value = currentSavedEpisode;
 
-              // Auto-set status to watching if currently in watchlist
-              const statusSel = document.getElementById('modal-status');
-              if (statusSel && statusSel.value === 'watchlist') {
-                statusSel.value = 'watching';
-              }
+              // Auto-set status to watching if in watchlist
+              setModalStatus('watching');
 
               // Update all card states
               episodesListEl.querySelectorAll('.modal-ep-card').forEach(c => {
@@ -855,10 +988,65 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
               });
 
               updateProgressUI();
+
+              // Auto-save in background immediately without needing to click "Güncelle"
+              autoSaveProgress(currentSavedSeason, currentSavedEpisode);
+
+              // Check if entire series is completed!
+              if (seasonNum === totalSeasonsCount && currentSavedEpisode === totalEpInSeason) {
+                triggerCelebration(title, isEnded ? 'Final Yaptı • Dizi Bitti' : 'Tüm Sezonlar Tamamlandı');
+              }
             });
           });
 
-        } catch (err) {
+          async function autoSaveProgress(newSeason, newEpisode) {
+            try {
+              const tmdbId    = parseInt(document.getElementById('modal-tmdb-id')?.value);
+              const mediaType = document.getElementById('modal-media-type')?.value;
+              const title     = document.getElementById('modal-title')?.value;
+              const poster    = document.getElementById('modal-poster')?.value;
+              const rating    = parseInt(document.getElementById('modal-rating-val')?.value) || null;
+              const notes     = document.getElementById('modal-notes')?.value || '';
+              const runtime   = parseInt(document.getElementById('modal-runtime')?.value) || null;
+              const totalSeasons  = parseInt(document.getElementById('modal-total-seasons')?.value) || null;
+              const totalEpisodes = parseInt(document.getElementById('modal-total-episodes')?.value) || null;
+              const genres = JSON.parse(document.getElementById('modal-genres')?.value || '[]');
+
+              const payload = {
+                tmdb_id: tmdbId,
+                media_type: mediaType,
+                title,
+                poster_path: poster,
+                genres,
+                status: 'watching',
+                rating,
+                notes,
+                runtime_minutes: runtime,
+                current_season: newSeason,
+                current_episode: newEpisode,
+                total_seasons: totalSeasons,
+                total_episodes: totalEpisodes,
+              };
+
+              if (detailTarget) {
+                const updated = await updateWatchlistItem(detailTarget.id, payload);
+                const idx = watchlistItems.findIndex(w => w.id === detailTarget.id);
+                if (idx !== -1) watchlistItems[idx] = updated;
+                detailTarget = updated;
+              } else {
+                const added = await addToWatchlist(currentUser.id, payload);
+                watchlistItems.unshift(added);
+                detailTarget = added;
+              }
+              updateNavCounts();
+              if (activeTab === 'mylist') renderWatchlistTab();
+              showToast(`S${newSeason}:B${newEpisode} kaydedildi ✓`, 'success', 1800);
+            } catch (err) {
+              console.error('Otomatik kaydetme hatası:', err);
+            }
+          }
+
+        } catch (e) {
           episodesListEl.innerHTML = `<div class="empty-state" style="padding:var(--sp-4)"><p>Bölümler yüklenemedi.</p></div>`;
         }
       }
@@ -874,98 +1062,239 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
     }
 
   } catch (e) {
-    bodyEl.innerHTML = `<div class="empty-state">
+    bodyEl.innerHTML = `<div class="empty-state" style="padding:var(--sp-8)">
       <div class="empty-state-icon">⚠️</div>
       <p>Detaylar yüklenemedi. TMDB API anahtarınızı kontrol edin.</p>
     </div>`;
   }
 }
 
-// ── Drum Picker (iOS-style vertical scroll with dynamic max) ──────────────────
-function initDrumPicker(drumId, hiddenInputId, maxVal = null, currentVal = null, onChange = null) {
-  const drum = document.getElementById(drumId);
-  const hidden = document.getElementById(hiddenInputId);
-  if (!drum || !hidden) return;
+// ── Status & Rating Modal Handlers ────────────────────────────────────────────
+window.setModalStatus = function(newStatus) {
+  const hidden = document.getElementById('modal-status-val');
+  if (hidden) hidden.value = newStatus;
 
-  const max = maxVal !== null ? maxVal : (parseInt(drum.dataset.max) || 20);
-  const initVal = Math.min(max, Math.max(1, currentVal !== null ? currentVal : (parseInt(drum.dataset.val) || 1)));
-  const itemH = 44;
-
-  drum.innerHTML = '';
-  drum.style.cssText = `position:relative;height:${itemH*3}px;overflow:hidden;border-radius:12px;background:var(--clr-surface-2);cursor:grab;user-select:none;touch-action:none;`;
-
-  const list = document.createElement('div');
-  list.style.cssText = `display:flex;flex-direction:column;transition:transform .15s ease;will-change:transform;`;
-
-  for (let i = 0; i < 2; i++) { const p = document.createElement('div'); p.style.height = itemH+'px'; list.appendChild(p); }
-  for (let i = 1; i <= max; i++) {
-    const item = document.createElement('div');
-    item.textContent = i; item.dataset.val = i;
-    item.style.cssText = `height:${itemH}px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:600;color:var(--clr-text-secondary);transition:color .1s,font-size .1s;`;
-    list.appendChild(item);
-  }
-  for (let i = 0; i < 2; i++) { const p = document.createElement('div'); p.style.height = itemH+'px'; list.appendChild(p); }
-  drum.appendChild(list);
-
-  const hl = document.createElement('div');
-  hl.style.cssText = `position:absolute;left:4px;right:4px;top:${itemH}px;height:${itemH}px;border-top:2px solid var(--clr-primary);border-bottom:2px solid var(--clr-primary);background:var(--clr-primary-50,rgba(16,185,129,.12));pointer-events:none;border-radius:6px;`;
-  drum.appendChild(hl);
-
-  let currentIdx = initVal - 1;
-  function setIdx(idx, animate = true) {
-    idx = Math.max(0, Math.min(max - 1, idx));
-    currentIdx = idx;
-    if (!animate) list.style.transition = 'none';
-    list.style.transform = `translateY(${-idx * itemH}px)`;
-    if (!animate) requestAnimationFrame(() => { list.style.transition = 'transform .15s ease'; });
-    const selectedVal = idx + 1;
-    hidden.value = selectedVal;
-    list.querySelectorAll('[data-val]').forEach(item => {
-      const active = parseInt(item.dataset.val) === selectedVal;
-      item.style.color = active ? 'var(--clr-primary)' : 'var(--clr-text-secondary)';
-      item.style.fontSize = active ? '1.4rem' : '1rem';
-      item.style.fontWeight = active ? '800' : '500';
-    });
-    if (onChange) onChange(selectedVal);
-  }
-  setIdx(initVal - 1, false);
-
-  let startY = 0, startIdx = 0, dragging = false;
-  drum.onmousedown = e => { dragging=true; startY=e.clientY; startIdx=currentIdx; drum.style.cursor='grabbing'; };
-  const onMouseMove = e => { if (!dragging) return; setIdx(startIdx + Math.round((startY - e.clientY) / itemH)); };
-  const onMouseUp = () => { if (dragging) { dragging=false; drum.style.cursor='grab'; } };
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
-
-  drum.ontouchstart = e => { dragging=true; startY=e.touches[0].clientY; startIdx=currentIdx; };
-  drum.ontouchmove = e => { if (!dragging) return; setIdx(startIdx + Math.round((startY - e.touches[0].clientY) / itemH)); };
-  drum.ontouchend = () => { dragging=false; };
-
-  drum.onwheel = e => { e.preventDefault(); setIdx(currentIdx + (e.deltaY > 0 ? 1 : -1)); };
-}
-
-function updateStarDisplay(val, scope = document) {
-  scope.querySelectorAll('#modal-star-rating .star').forEach(s => {
-    s.classList.toggle('active', parseInt(s.dataset.value) <= val);
+  document.querySelectorAll('.status-pill-btn').forEach(btn => {
+    const s = btn.dataset.status;
+    const isActive = s === newStatus;
+    btn.classList.toggle('active', isActive);
+    btn.className = `status-pill-btn ${s} ${isActive ? 'active ' + s : ''}`;
   });
-}
-function highlightStars(val, scope = document) {
-  scope.querySelectorAll('#modal-star-rating .star').forEach(s => {
-    s.classList.toggle('hovered', parseInt(s.dataset.value) <= val);
+
+  const tvWrap = document.getElementById('modal-tv-tracker-wrap');
+  if (tvWrap) {
+    tvWrap.classList.toggle('collapsed', newStatus === 'watchlist');
+  }
+};
+
+window.setModalRating = function(val) {
+  const hidden = document.getElementById('modal-rating-val');
+  const textEl = document.getElementById('modal-rating-text');
+  if (hidden) hidden.value = val;
+  if (textEl) textEl.textContent = val ? `${val} / 10 ★` : 'Puan Ver';
+
+  document.querySelectorAll('#modal-star-rating .star-btn').forEach(btn => {
+    const v = parseInt(btn.dataset.value);
+    btn.classList.toggle('active', v <= val);
   });
-}
+};
+
+window.switchDetailTab = function(tab) {
+  const btnOverview = document.getElementById('btn-opt-overview');
+  const btnCast = document.getElementById('btn-opt-cast');
+  const paneOverview = document.getElementById('detail-overview-content');
+  const paneCast = document.getElementById('detail-cast-content');
+
+  if (tab === 'overview') {
+    btnOverview?.classList.add('active');
+    btnCast?.classList.remove('active');
+    paneOverview?.classList.add('active');
+    paneCast?.classList.remove('active');
+  } else {
+    btnCast?.classList.add('active');
+    btnOverview?.classList.remove('active');
+    paneCast?.classList.add('active');
+    paneOverview?.classList.remove('active');
+  }
+};
 
 window.closeDetailModal = function() {
   document.getElementById('detail-modal-backdrop')?.classList.add('hidden');
   detailTarget = null;
 };
 
+// ── Fireworks & Celebration Engine ───────────────────────────────────────────
+let fireworksAnimationId = null;
+
+export function triggerCelebration(title, statusTag = 'Tüm Sezonlar Tamamlandı') {
+  const overlay = document.getElementById('celebration-overlay');
+  const titleEl = document.getElementById('celebration-title');
+  const tagEl   = document.getElementById('celebration-status-tag');
+  if (!overlay) return;
+
+  if (titleEl) titleEl.textContent = title || 'Dizi';
+  if (tagEl)   tagEl.textContent = `✨ ${statusTag || 'Final Yaptı • Tüm Sezonlar Bitti'}`;
+  overlay.classList.remove('hidden');
+
+  // 1. Trigger Canvas Confetti if loaded
+  if (typeof window.confetti === 'function') {
+    window.confetti({
+      particleCount: 120,
+      spread: 80,
+      origin: { y: 0.6 }
+    });
+
+    const duration = 4.5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10001 };
+
+    function randomInRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    const interval = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+      const particleCount = 45 * (timeLeft / duration);
+      window.confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+      window.confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
+  }
+
+  // 2. Run Canvas Particle Fireworks
+  startCanvasFireworks();
+}
+window.triggerCelebration = triggerCelebration;
+
+export function closeCelebration() {
+  const overlay = document.getElementById('celebration-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  if (fireworksAnimationId) {
+    cancelAnimationFrame(fireworksAnimationId);
+    fireworksAnimationId = null;
+  }
+}
+window.closeCelebration = closeCelebration;
+
+function startCanvasFireworks() {
+  const canvas = document.getElementById('fireworks-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const particles = [];
+  const rockets = [];
+  const colors = ['#10b981', '#34d399', '#f59e0b', '#fbbf24', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444', '#ffffff'];
+
+  class Rocket {
+    constructor() {
+      this.x = Math.random() * canvas.width * 0.8 + canvas.width * 0.1;
+      this.y = canvas.height;
+      this.targetY = Math.random() * canvas.height * 0.45 + canvas.height * 0.1;
+      this.speed = Math.random() * 4 + 7;
+      this.color = colors[Math.floor(Math.random() * colors.length)];
+      this.dead = false;
+    }
+    update() {
+      this.y -= this.speed;
+      if (this.y <= this.targetY) {
+        this.dead = true;
+        this.explode();
+      }
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = this.color;
+      ctx.fill();
+    }
+    explode() {
+      const count = 75;
+      for (let i = 0; i < count; i++) {
+        particles.push(new Particle(this.x, this.y, this.color));
+      }
+    }
+  }
+
+  class Particle {
+    constructor(x, y, color) {
+      this.x = x;
+      this.y = y;
+      this.color = color;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 6 + 1.5;
+      this.vx = Math.cos(angle) * speed;
+      this.vy = Math.sin(angle) * speed;
+      this.alpha = 1;
+      this.decay = Math.random() * 0.015 + 0.012;
+      this.gravity = 0.08;
+      this.size = Math.random() * 2.5 + 1.5;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.vy += this.gravity;
+      this.vx *= 0.98;
+      this.alpha -= this.decay;
+    }
+    draw() {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, this.alpha);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = this.color;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  let spawnTimer = 0;
+
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    spawnTimer++;
+    if (spawnTimer % 18 === 0 && rockets.length < 6) {
+      rockets.push(new Rocket());
+    }
+
+    for (let i = rockets.length - 1; i >= 0; i--) {
+      rockets[i].update();
+      rockets[i].draw();
+      if (rockets[i].dead) rockets.splice(i, 1);
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      particles[i].update();
+      particles[i].draw();
+      if (particles[i].alpha <= 0) particles.splice(i, 1);
+    }
+
+    fireworksAnimationId = requestAnimationFrame(loop);
+  }
+
+  // initial rockets
+  rockets.push(new Rocket());
+  rockets.push(new Rocket());
+
+  loop();
+}
+
 window.saveDetailModal = async function() {
   const tmdbId    = parseInt(document.getElementById('modal-tmdb-id')?.value);
   const mediaType = document.getElementById('modal-media-type')?.value;
   const title     = document.getElementById('modal-title')?.value;
   const poster    = document.getElementById('modal-poster')?.value;
-  const status    = document.getElementById('modal-status')?.value;
+  const status    = document.getElementById('modal-status-val')?.value || document.getElementById('modal-status')?.value || 'watchlist';
   const rating    = parseInt(document.getElementById('modal-rating-val')?.value) || null;
   const notes     = document.getElementById('modal-notes')?.value || '';
   const runtime   = parseInt(document.getElementById('modal-runtime')?.value) || null;

@@ -8,10 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/variables.css?v=5.0">
-  <link rel="stylesheet" href="css/main.css?v=5.0">
-  <link rel="stylesheet" href="css/app.css?v=5.0">
+  <link rel="stylesheet" href="css/variables.css?v=5.2">
+  <link rel="stylesheet" href="css/main.css?v=5.2">
+  <link rel="stylesheet" href="css/app.css?v=5.2">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <script>
     (function() {
       const saved = localStorage.getItem('binge-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -508,14 +509,29 @@
 ════════════════════════════════════════════════ -->
 <div class="modal-backdrop hidden" id="detail-modal-backdrop" role="dialog"
   aria-modal="true" aria-labelledby="detail-modal-title">
-  <div class="modal detail-modal">
-    <div class="modal-header">
-      <h2 class="modal-title" id="detail-modal-title">Listeye Ekle</h2>
-      <button class="modal-close" id="detail-modal-close" aria-label="Kapat">✕</button>
-    </div>
-    <div class="modal-body" id="detail-modal-body">
+  <div class="modal detail-modal" id="detail-modal-card">
+    <div id="detail-modal-body">
       <!-- Populated by JS -->
     </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     CELEBRATION / FIREWORKS OVERLAY
+════════════════════════════════════════════════ -->
+<div id="celebration-overlay" class="celebration-overlay hidden">
+  <canvas id="fireworks-canvas" class="fireworks-canvas"></canvas>
+  <div class="celebration-card">
+    <div class="celebration-trophy-ring">
+      <div class="celebration-trophy">🏆</div>
+    </div>
+    <div class="celebration-badge">DİZİ TAMAMLANDI</div>
+    <h2 class="celebration-title" id="celebration-title">Breaking Bad</h2>
+    <p class="celebration-status-pill" id="celebration-status-tag">✨ Final Yaptı • Tüm Sezonlar Bitti</p>
+    <p class="celebration-msg">Harika bir yolculuktu! Bu dizinin tüm sezon ve bölümlerini başarıyla bitirdin.</p>
+    <button type="button" class="btn btn-primary celebration-btn" onclick="closeCelebration()">
+      <span>Harika! 🚀</span>
+    </button>
   </div>
 </div>
 

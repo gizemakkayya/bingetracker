@@ -61,7 +61,7 @@ export class MediaService {
   }
 
   static async getDetails(type: 'movie' | 'tv', id: number) {
-    return this.fetchTMDB(`/${type}/${id}`);
+    return this.fetchTMDB(`/${type}/${id}`, { append_to_response: 'credits,watch/providers' });
   }
 
   static async getSeasonEpisodes(tvId: number, seasonNumber: number) {
