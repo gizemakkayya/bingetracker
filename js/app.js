@@ -1467,9 +1467,38 @@ window.deleteFromModal = async function() {
   }
 };
 
+// ── MyList Media Filter State ───────────────────────────────────────────────
+let mylistMediaType = 'all'; // 'all' | 'tv' | 'movie'
+
+export function setMyListMediaType(type) {
+  mylistMediaType = type;
+  ['all', 'tv', 'movie'].forEach(t => {
+    const btn = document.getElementById(`mylist-type-${t}`);
+    if (btn) btn.classList.toggle('active', t === type);
+  });
+  renderWatchlistTab();
+}
+window.setMyListMediaType = setMyListMediaType;
+
 // ── Watchlist tab rendering ───────────────────────────────────────────────────
 function renderWatchlistTab() {
+  // Update media type pill counts for all items in user's library
+  const countAll = watchlistItems.length;
+  const countTv = watchlistItems.filter(i => i.media_type === 'tv').length;
+  const countMovie = watchlistItems.filter(i => i.media_type === 'movie').length;
+
+  const countAllEl = document.getElementById('count-type-all');
+  const countTvEl = document.getElementById('count-type-tv');
+  const countMovieEl = document.getElementById('count-type-movie');
+  if (countAllEl) countAllEl.textContent = countAll;
+  if (countTvEl) countTvEl.textContent = countTv;
+  if (countMovieEl) countMovieEl.textContent = countMovie;
+
+  // Filter by status tab AND by media type
   let items = watchlistItems.filter(i => i.status === listActiveTab);
+  if (mylistMediaType !== 'all') {
+    items = items.filter(i => i.media_type === mylistMediaType);
+  }
 
   // Sort
   items = [...items].sort((a, b) => {
@@ -1481,14 +1510,17 @@ function renderWatchlistTab() {
   const container = document.getElementById('watchlist-grid');
   if (!container) return;
 
-  // Update list tab counts
+  // Update status tab counts (scoped to selected media type)
   ['watchlist', 'watching', 'watched'].forEach(s => {
     const el = document.getElementById(`list-count-${s}`);
-    if (el) el.textContent = watchlistItems.filter(i => i.status === s).length;
+    if (el) {
+      el.textContent = watchlistItems.filter(i => i.status === s && (mylistMediaType === 'all' || i.media_type === mylistMediaType)).length;
+    }
   });
 
   if (!items.length) {
-    const labels = { watchlist: 'İzlenecek listesi', watching: 'İzleniyor listesi', watched: 'İzlendi listesi' };
+    const mediaName = mylistMediaType === 'tv' ? 'dizi' : (mylistMediaType === 'movie' ? 'film' : 'içerik');
+    const labels = { watchlist: `İzlenecek ${mediaName} listeniz`, watching: `İzleniyor ${mediaName} listeniz`, watched: `İzlendi ${mediaName} listeniz` };
     const emptyIcons = { watchlist: 'clock', watching: 'play-circle', watched: 'check-circle' };
     container.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1">
@@ -1496,7 +1528,7 @@ function renderWatchlistTab() {
           <i data-lucide="${emptyIcons[listActiveTab]}" class="icon-xl"></i>
         </div>
         <h3>${labels[listActiveTab]} boş</h3>
-        <p>İçerik aramak için Keşfet sekmesini kullanın.</p>
+        <p>${mylistMediaType !== 'all' ? `Bu kategoride henüz ${mediaName} eklenmemiş.` : 'İçerik aramak için Keşfet sekmesini kullanın.'}</p>
       </div>`;
     renderIcons(container);
     return;

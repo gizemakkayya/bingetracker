@@ -344,10 +344,29 @@
   ════════════════════════════════════════════════ -->
   <div data-page="mylist" style="display:none">
     <div class="page-content">
-      <div class="section-header">
+      <div class="section-header mylist-header-row">
         <div>
           <h1 class="section-title">Listelerim</h1>
           <p class="section-subtitle">İzleme geçmişinizi ve planlarınızı yönetin</p>
+        </div>
+
+        <!-- Media Type Filter (Dizi / Film / Tümü) -->
+        <div class="mylist-media-pills">
+          <button type="button" class="mylist-media-btn active" id="mylist-type-all" onclick="setMyListMediaType('all')">
+            <i data-lucide="layers" class="icon-xs"></i>
+            <span>Tümü</span>
+            <span class="pill-count" id="count-type-all">0</span>
+          </button>
+          <button type="button" class="mylist-media-btn" id="mylist-type-tv" onclick="setMyListMediaType('tv')">
+            <i data-lucide="tv" class="icon-xs"></i>
+            <span>Diziler</span>
+            <span class="pill-count" id="count-type-tv">0</span>
+          </button>
+          <button type="button" class="mylist-media-btn" id="mylist-type-movie" onclick="setMyListMediaType('movie')">
+            <i data-lucide="film" class="icon-xs"></i>
+            <span>Filmler</span>
+            <span class="pill-count" id="count-type-movie">0</span>
+          </button>
         </div>
       </div>
 
