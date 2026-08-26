@@ -915,13 +915,75 @@ button.nav-link.active {
 }
 
 .detail-tmdb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 2px 9px;
   border-radius: 9999px;
   background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+}
+
+.tmdb-star {
+  color: #fbbf24;
+  font-size: 12px;
+}
+
+.rating-votes-count {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #d97706;
+  opacity: 0.9;
+}
+
+.detail-imdb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px 2px 3px;
+  border-radius: 6px;
+  background: rgba(245, 197, 24, 0.14);
+  color: #f5c518;
+  border: 1px solid rgba(245, 197, 24, 0.38);
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.detail-imdb-badge:hover {
+  background: #f5c518;
+  color: #000000;
+  border-color: #f5c518;
+  box-shadow: 0 2px 10px rgba(245, 197, 24, 0.4);
+  transform: translateY(-1px);
+}
+
+.imdb-icon-box {
+  background: #f5c518;
+  color: #000000;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.detail-imdb-badge:hover .imdb-icon-box {
+  background: #000000;
+  color: #f5c518;
+}
+
+.imdb-score-text {
+  font-size: 10.5px;
+  font-weight: 700;
 }
 
 .detail-banner-title {
@@ -1461,7 +1523,8 @@ button.nav-link.active {
   .detail-banner-badges .badge,
   .detail-year-badge,
   .detail-status-badge,
-  .detail-tmdb-badge {
+  .detail-tmdb-badge,
+  .detail-imdb-badge {
     font-size: 9.5px;
     padding: 1.5px 6px;
   }

@@ -64,14 +64,14 @@ export async function getDiscover(type = 'movie', genreId = '', page = 1) {
   return (data.results || []).map(r => ({ ...r, media_type: type }));
 }
 
-// Get movie details (with runtime, credits, and watch providers)
+// Get movie details (with runtime, credits, watch providers, and external_ids)
 export async function getMovieDetails(id) {
-  return tmdbFetch(`/movie/${id}`, { append_to_response: 'credits,watch/providers' });
+  return tmdbFetch(`/movie/${id}`, { append_to_response: 'credits,watch/providers,external_ids' });
 }
 
-// Get TV show details (with number_of_episodes, seasons, credits, and watch providers)
+// Get TV show details (with number_of_episodes, seasons, credits, watch providers, and external_ids)
 export async function getTVDetails(id) {
-  return tmdbFetch(`/tv/${id}`, { append_to_response: 'credits,watch/providers' });
+  return tmdbFetch(`/tv/${id}`, { append_to_response: 'credits,watch/providers,external_ids' });
 }
 
 // Get TV season details

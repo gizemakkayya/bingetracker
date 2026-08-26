@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Check, Tv, Film, Clock, Calendar, Bookmark, Play, CheckCircle2, MessageSquare, AlignLeft, Users, User } from 'lucide-react';
+import { X, Star, Check, Tv, Film, Clock, Calendar, Bookmark, Play, CheckCircle2, MessageSquare, AlignLeft, Users, User, ExternalLink } from 'lucide-react';
 import { api } from '../services/api.js';
 import { TMDBMediaItem, TMDBEpisode, WatchlistItem } from '../types/index.js';
 
@@ -106,12 +106,11 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
 
     // Auto-save in background immediately
     try {
-      await onSaveItem({
+      await api.post('/tracker', {
         tmdbId: media.id,
         mediaType: 'tv',
         title: details?.name || details?.title || '',
         posterPath: details?.poster_path || null,
-        genres: details?.genres?.map(g => g.name) || [],
         status: 'watching',
         rating: rating > 0 ? rating : null,
         notes: notes.trim() || null,
@@ -243,10 +242,34 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               {details.vote_average ? (
-                <span className="flex items-center gap-1 text-xs font-bold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">
-                  <Star className="w-3.5 h-3.5 fill-amber-400" /> {details.vote_average.toFixed(1)} / 10 TMDB
+                <span
+                  title={details.vote_count ? `${details.vote_count.toLocaleString('tr-TR')} oy` : 'TMDB Puanı'}
+                  className="flex items-center gap-1 text-xs font-bold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20"
+                >
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span>{details.vote_average.toFixed(1)} / 10</span>
+                  {details.vote_count ? (
+                    <span className="text-[10px] text-amber-500/80 font-normal">
+                      ({details.vote_count >= 1000 ? `${(details.vote_count / 1000).toFixed(1)}k` : details.vote_count})
+                    </span>
+                  ) : null}
                 </span>
               ) : null}
+
+              {(details.imdb_id || (details as any).external_ids?.imdb_id) && (
+                <a
+                  href={`https://www.imdb.com/title/${details.imdb_id || (details as any).external_ids?.imdb_id}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#f5c518]/15 hover:bg-[#f5c518] text-[#f5c518] hover:text-black border border-[#f5c518]/40 text-xs font-bold transition-all shadow-sm"
+                  title="Resmi IMDb sayfasını aç"
+                >
+                  <span className="bg-[#f5c518] text-black px-1 rounded text-[9px] font-black">IMDb</span>
+                  <span>★ {details.vote_average?.toFixed(1) || 'Sayfa'}</span>
+                  <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />
+                </a>
+              )}
+
               {details.genres?.map((g) => (
                 <span key={g.id} className="text-xs font-medium text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
                   {g.name}

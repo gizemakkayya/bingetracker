@@ -571,6 +571,8 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
     const isEnded = details.status === 'Ended' || details.status === 'Canceled';
     const statusTag = mediaType === 'tv' ? (isEnded ? 'Final Yaptı' : (details.status === 'Returning Series' ? 'Devam Ediyor' : '')) : '';
     const ratingVal = details.vote_average ? details.vote_average.toFixed(1) : '';
+    const voteCount = details.vote_count ? (details.vote_count >= 1000 ? `${(details.vote_count / 1000).toFixed(1)}k` : details.vote_count) : null;
+    const imdbId = details.imdb_id || details.external_ids?.imdb_id || null;
 
     const rawStatus  = existingItem?.status  || 'watchlist';
     const curStatus  = (mediaType === 'tv' && rawStatus === 'watched') ? 'watching' : rawStatus;
@@ -636,7 +638,18 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
               <span class="badge badge-${mediaType}">${mediaType === 'movie' ? 'Film' : 'Dizi'}</span>
               ${year ? `<span class="detail-year-badge">${year}</span>` : ''}
               ${statusTag ? `<span class="detail-status-badge ${isEnded ? 'ended' : ''}">${statusTag}</span>` : ''}
-              ${ratingVal ? `<span class="detail-tmdb-badge">★ ${ratingVal} TMDB</span>` : ''}
+              ${ratingVal ? `
+                <span class="detail-tmdb-badge" title="${details.vote_count ? `${details.vote_count.toLocaleString('tr-TR')} oy kullanıldı` : 'TMDB Puanı'}">
+                  <span class="tmdb-star">★</span> ${ratingVal} <small class="rating-votes-count">${voteCount ? `(${voteCount})` : 'TMDB'}</small>
+                </span>
+              ` : ''}
+              ${imdbId ? `
+                <a href="https://www.imdb.com/title/${imdbId}/" target="_blank" rel="noopener noreferrer" class="detail-imdb-badge" title="Resmi IMDb sayfasını aç">
+                  <span class="imdb-icon-box">IMDb</span>
+                  ${ratingVal ? `<span class="imdb-score-text">★ ${ratingVal}</span>` : ''}
+                  <i data-lucide="external-link" class="icon-xxs"></i>
+                </a>
+              ` : ''}
             </div>
             <h2 class="detail-banner-title">${escHtml(title)}</h2>
             <div class="detail-genre-tags">

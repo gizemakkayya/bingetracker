@@ -63,6 +63,13 @@ export interface TMDBMediaItem {
   release_date?: string;
   first_air_date?: string;
   vote_average?: number;
+  vote_count?: number;
+  imdb_id?: string | null;
+  external_ids?: {
+    imdb_id?: string | null;
+    tvdb_id?: number | null;
+    wikidata_id?: string | null;
+  };
   runtime?: number;
   number_of_seasons?: number;
   number_of_episodes?: number;
