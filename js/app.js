@@ -1666,79 +1666,18 @@ let friendModalFilter = 'all';
 const INITIAL_SOCIAL_USERS = [];
 const INITIAL_ACTIVITIES = [];
 
-const MOCK_USER_IDS = new Set(['user_ahmet', 'user_gizem', 'user_melike', 'user_emre', 'user_selin', 'user_canberk']);
+const MOCK_USER_IDS = new Set(['user_ahmet', 'user_gizem', 'user_melike', 'user_emre', 'user_selin', 'user_canberk', 'user_buse']);
 
 function getFollowingUserIds() {
   const saved = localStorage.getItem('binge_following_ids');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return new Set(parsed.filter(id => !MOCK_USER_IDS.has(id)));
+      return new Set(parsed.filter(id => !MOCK_USER_IDS.has(id) && id !== 'user_buse'));
     } catch (e) {}
   }
   return new Set();
 }
-
-const BUSE_USER = {
-  id: 'user_buse',
-  username: 'buse',
-  name: 'Buse',
-  avatar: null,
-  role: '⭐ BingeTracker Üyesi',
-  bio: 'Dizi ve film maratoncusu 🎬 Favori türlerim: Bilim Kurgu ve Gerilim 🍿',
-  stats: {
-    movies: 14,
-    series: 8,
-    hours: 92,
-    avgRating: 8.8
-  },
-  watchlist: [
-    {
-      tmdb_id: 66732,
-      media_type: 'tv',
-      title: 'Stranger Things',
-      poster_path: '/49WJfeN0moxb9IPfGn8AIqMGskD.jpg',
-      status: 'watched',
-      rating: 9,
-      current_season: 4,
-      current_episode: 9,
-      notes: 'Final sezonunu sabırsızlıkla bekliyorum!',
-      updated_at: '2 gün önce'
-    },
-    {
-      tmdb_id: 157336,
-      media_type: 'movie',
-      title: 'Interstellar',
-      poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-      status: 'watched',
-      rating: 10,
-      notes: 'Sinema tarihinin en iyi başyapıtlarından biri.',
-      updated_at: 'Dün'
-    },
-    {
-      tmdb_id: 100088,
-      media_type: 'tv',
-      title: 'The Last of Us',
-      poster_path: '/uKvVjHNqB5VmOrdxqAt2V7JMrqi.jpg',
-      status: 'watching',
-      rating: 9,
-      current_season: 1,
-      current_episode: 7,
-      notes: 'Atmosferi ve müzikleri tek kelimeyle harika.',
-      updated_at: 'Bugün'
-    },
-    {
-      tmdb_id: 27205,
-      media_type: 'movie',
-      title: 'Inception',
-      poster_path: '/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg',
-      status: 'watched',
-      rating: 10,
-      notes: 'Rüya içinde rüya konsepti harika işlenmiş.',
-      updated_at: '3 gün önce'
-    }
-  ]
-};
 
 // ── Notification Center State & Methods ────────────────────────────────────────
 export function getNotifications() {
@@ -1747,19 +1686,27 @@ export function getNotifications() {
   const saved = localStorage.getItem(key);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const list = JSON.parse(saved);
+      if (Array.isArray(list) && list.length) {
+        return list.map(n => {
+          if (n.senderId === 'user_buse') n.senderName = 'Buse1';
+          return n;
+        });
+      }
     } catch (e) {}
   }
 
-  // Seed default follow notification from Buse if new
+  const allUsers = getStoredSocialProfiles();
+  const buseUser = allUsers.find(u => (u.username || '').toLowerCase().includes('buse') || (u.name || '').toLowerCase().includes('buse'));
+
   const defaultNotifs = [
     {
       id: 'notif_buse_follow_1',
       type: 'follow',
-      senderId: 'user_buse',
-      senderName: 'Buse',
-      senderUsername: 'buse',
-      senderAvatar: null,
+      senderId: buseUser ? buseUser.id : 'buse1',
+      senderName: buseUser ? buseUser.name : 'Buse1',
+      senderUsername: buseUser ? buseUser.username : 'buse1',
+      senderAvatar: buseUser ? buseUser.avatar : null,
       message: 'seni takip etmeye başladı! 🍿',
       timeAgo: 'Az önce',
       timestamp: Date.now(),
@@ -1892,23 +1839,16 @@ function getStoredSocialProfiles() {
   let list = [];
   if (saved) {
     try {
-      list = JSON.parse(saved).filter(u => !MOCK_USER_IDS.has(u.id) && u.id !== 'user_ahmet');
+      list = JSON.parse(saved).filter(u => !MOCK_USER_IDS.has(u.id) && u.id !== 'user_ahmet' && u.id !== 'user_buse');
     } catch (e) {}
   }
 
-  // Check if real Buse exists in profiles
-  const hasRealBuse = list.some(u => u.id !== 'user_buse' && (u.username?.toLowerCase() === 'buse' || u.name?.toLowerCase() === 'buse'));
-  if (hasRealBuse) {
-    list = list.filter(u => u.id !== 'user_buse');
-  } else if (!list.some(u => u.id === 'user_buse' || u.username?.toLowerCase() === 'buse')) {
-    list.push(BUSE_USER);
-  }
-
-  // Final deduplication by username/name
+  // Final deduplication by unique ID or clean username
   const seen = new Set();
   const deduplicated = [];
   for (const item of list) {
-    const key = (item.username || item.name || '').toLowerCase().replace(/\s+/g, '');
+    if (MOCK_USER_IDS.has(item.id) || item.id === 'user_buse') continue;
+    const key = item.id || (item.username || item.name || '').toLowerCase().replace(/\s+/g, '');
     if (!seen.has(key)) {
       seen.add(key);
       deduplicated.push(item);
@@ -2072,7 +2012,7 @@ function getUserActivities() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return parsed.filter(a => !MOCK_USER_IDS.has(a.userId) && a.userId !== 'user_ahmet');
+      return parsed.filter(a => !MOCK_USER_IDS.has(a.userId) && a.userId !== 'user_ahmet' && a.userId !== 'user_buse');
     } catch (e) {}
   }
   return [];
@@ -2093,7 +2033,7 @@ function logUserActivity(act) {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      list = parsed.filter(a => !MOCK_USER_IDS.has(a.userId) && a.userId !== 'user_ahmet');
+      list = parsed.filter(a => !MOCK_USER_IDS.has(a.userId) && a.userId !== 'user_ahmet' && a.userId !== 'user_buse');
     } catch (e) {}
   }
   list.unshift(newAct);
