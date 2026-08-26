@@ -438,87 +438,108 @@ form.hidden,
 @media (max-width: 480px) {
   .canvas-poster-mosaic {
     gap: 12px;
-    transform: rotate(-3deg) scale(1.05);
-    opacity: 0.92;
-    top: -80px;
-    bottom: -80px;
-    left: -40px;
-    right: -40px;
+    transform: rotate(-3deg) scale(1.06);
+    opacity: 0.95;
+    top: -60px;
+    bottom: -60px;
+    left: -30px;
+    right: -30px;
   }
   .mosaic-col {
-    gap: 14px;
+    gap: 12px;
   }
   .mosaic-col img {
-    width: 145px;
-    border-radius: 14px;
+    width: 130px;
+    border-radius: 12px;
   }
   .auth-top-bar {
-    padding: var(--sp-3) var(--sp-4);
+    padding: var(--sp-2) var(--sp-4);
+  }
+  .auth-logo-mark {
+    font-size: 1.1rem;
+    gap: 8px;
+  }
+  .auth-logo-icon {
+    width: 32px;
+    height: 32px;
   }
   .auth-center-wrap {
-    padding: 6px 16px 18px;
+    padding: 4px 14px 14px;
   }
   .auth-center-card {
-    max-width: 350px;
-    padding: 20px 18px 18px;
-    border-radius: 20px;
-    background: rgba(8, 14, 11, 0.62);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7),
-                0 0 25px rgba(16, 185, 129, 0.1);
+    max-width: 310px;
+    padding: 16px 16px 14px;
+    border-radius: 18px;
+    background: rgba(6, 12, 9, 0.50);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7),
+                0 0 20px rgba(16, 185, 129, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.16);
   }
   .auth-card-top {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
   .auth-center-badge {
-    margin-bottom: 4px;
-    padding: 3px 9px;
-    font-size: 10px;
+    margin-bottom: 3px;
+    padding: 2px 8px;
+    font-size: 9.5px;
   }
   .auth-card-title {
-    font-size: 1.22rem;
-    margin-bottom: 3px;
+    font-size: 1.12rem;
+    margin-bottom: 2px;
   }
   .auth-card-sub {
-    font-size: 11px;
-    margin-bottom: 6px;
-    line-height: 1.35;
+    font-size: 10.5px;
+    margin-bottom: 4px;
+    line-height: 1.3;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
   .auth-features-bar {
-    gap: 4px;
-    margin-top: 4px;
-  }
-  .feature-badge-pill {
-    padding: 2px 7px;
-    font-size: 9.5px;
+    display: none; /* Hide heavy feature badges on small mobile screens to keep box compact and show posters */
   }
   .input-group {
-    margin-bottom: 12px;
+    margin-bottom: 9px;
   }
   .input-label {
-    font-size: 11.5px;
-    margin-bottom: 4px;
+    font-size: 11px;
+    margin-bottom: 3px;
   }
   .input-field-wrap .form-input {
-    height: 44px;
-    font-size: 13px;
-    padding-left: 44px !important;
-    padding-right: 44px !important;
+    height: 40px;
+    font-size: 12.5px;
+    padding-left: 38px !important;
+    padding-right: 38px !important;
+    border-radius: 11px;
+    background: rgba(4, 8, 6, 0.55);
   }
   .input-icon {
-    left: 14px;
+    left: 12px;
+  }
+  .input-icon i {
+    width: 15px;
+    height: 15px;
+  }
+  .password-toggle {
+    right: 8px;
+    width: 28px;
+    height: 28px;
   }
   .auth-submit-btn {
-    height: 44px;
-    font-size: 13.5px;
+    height: 40px;
+    font-size: 13px;
     margin-top: 2px;
+    border-radius: 11px;
   }
   .auth-switch-prompt {
-    margin-top: 12px;
+    margin-top: 10px;
+    font-size: 11px;
+  }
+  .auth-switch-btn {
+    font-size: 11px;
   }
 }
