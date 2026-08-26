@@ -1621,23 +1621,6 @@ let friendModalFilter = 'all';
 // Mock & Initial Social Database
 const INITIAL_SOCIAL_USERS = [
   {
-    id: 'user_ahmet',
-    username: 'ahmetfuad',
-    name: 'Ahmet Fuad Kahriman',
-    avatar: 'assets/proje_muduru.jpg',
-    role: '👑 Proje Müdürü',
-    bio: 'BingeTracker Proje Müdürü • IMDb Top 250 & Bilim Kurgu Tutkunu 🚀',
-    stats: { movies: 142, series: 28, hours: 490, avgRating: 8.9 },
-    watchlist: [
-      { tmdb_id: 1396, media_type: 'tv', title: 'Breaking Bad', poster_path: '/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg', status: 'watched', rating: 10, current_season: 5, current_episode: 16, total_seasons: 5, total_episodes: 62, notes: 'Televizyon tarihinin en görkemli başyapıtı. Walter White karakter gelişimi eşsiz.', updated_at: '2 saat önce' },
-      { tmdb_id: 157336, media_type: 'movie', title: 'Interstellar', poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg', status: 'watched', rating: 10, notes: 'Hans Zimmer müzikleri ve Nolan dehası. Her izleyişte büyüleniyorum.', updated_at: 'Dün' },
-      { tmdb_id: 253412, media_type: 'tv', title: 'Lucky', poster_path: '/9BAAyR7r1d4fF1z1y0pB9s8F5M.jpg', status: 'watching', rating: 8, current_season: 1, current_episode: 4, total_seasons: 1, total_episodes: 8, notes: 'Anya Taylor-Joy performansı çok sürükleyici.', updated_at: '3 saat önce' },
-      { tmdb_id: 110492, media_type: 'tv', title: 'Severance', poster_path: '/jG57fepU3Zl8cRj1dY1eC1Y0gH.jpg', status: 'watching', rating: 9, current_season: 1, current_episode: 7, total_seasons: 2, total_episodes: 18, notes: 'Bölüm sonları nefes kesici. Kesinlikle izleyin.', updated_at: '3 gün önce' },
-      { tmdb_id: 693134, media_type: 'movie', title: 'Dune: Part Two', poster_path: '/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg', status: 'watched', rating: 9, notes: 'Sinematografi ve ses miksajı olağanüstü seviyede.', updated_at: 'Geçen hafta' },
-      { tmdb_id: 76331, media_type: 'tv', title: 'Succession', poster_path: '/7T656W6h2q9v7P8pB7j7eZ2L4M.jpg', status: 'watched', rating: 10, notes: 'Senaryo ve diyaloglar ders niteliğinde.', updated_at: '2 hafta önce' }
-    ]
-  },
-  {
     id: 'user_gizem',
     username: 'gizemakkayya',
     name: 'Gizem Akkayya',
@@ -1729,19 +1712,6 @@ const INITIAL_ACTIVITIES = [
     timeAgo: '1 saat önce'
   },
   {
-    id: 'act_1',
-    userId: 'user_ahmet',
-    actionType: 'COMPLETED_SERIES',
-    mediaType: 'tv',
-    tmdbId: 1396,
-    title: 'Breaking Bad',
-    posterPath: '/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg',
-    rating: 10,
-    detailText: 'tüm sezon ve bölümlerini bitirdi ve ★ 10 puan verdi!',
-    note: 'Televizyon tarihinin en görkemli başyapıtı. Walter White karakter gelişimi eşsiz.',
-    timeAgo: '2 saat önce'
-  },
-  {
     id: 'act_2',
     userId: 'user_gizem',
     actionType: 'WATCHING_EPISODE',
@@ -1784,19 +1754,6 @@ const INITIAL_ACTIVITIES = [
     timeAgo: 'Dün'
   },
   {
-    id: 'act_5',
-    userId: 'user_ahmet',
-    actionType: 'RATED_MOVIE',
-    mediaType: 'movie',
-    tmdbId: 157336,
-    title: 'Interstellar',
-    posterPath: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-    rating: 10,
-    detailText: 'filmini tekrar izledi ve ★ 10 puan verdi.',
-    note: 'Hans Zimmer müzikleri ve Nolan dehası. Her izleyişte büyüleniyorum.',
-    timeAgo: 'Dün'
-  },
-  {
     id: 'act_6',
     userId: 'user_canberk',
     actionType: 'COMPLETED_SERIES',
@@ -1813,19 +1770,26 @@ const INITIAL_ACTIVITIES = [
 function getFollowingUserIds() {
   const saved = localStorage.getItem('binge_following_ids');
   if (saved) {
-    try { return new Set(JSON.parse(saved)); } catch (e) {}
+    try {
+      const parsed = JSON.parse(saved);
+      return new Set(parsed.filter(id => id !== 'user_ahmet'));
+    } catch (e) {}
   }
-  return new Set(['user_ahmet', 'user_gizem', 'user_melike']);
+  return new Set(['user_gizem', 'user_melike']);
 }
 
 function saveFollowingUserIds(set) {
+  set.delete('user_ahmet');
   localStorage.setItem('binge_following_ids', JSON.stringify(Array.from(set)));
 }
 
 function getStoredSocialProfiles() {
   const saved = localStorage.getItem('binge_registered_profiles');
   if (saved) {
-    try { return JSON.parse(saved); } catch (e) {}
+    try {
+      const parsed = JSON.parse(saved);
+      return parsed.filter(u => u.id !== 'user_ahmet' && u.username !== 'ahmetfuad');
+    } catch (e) {}
   }
   return [];
 }
