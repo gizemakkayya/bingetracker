@@ -235,14 +235,17 @@ function bindEvents() {
     e.stopPropagation();
     document.getElementById('user-dropdown').classList.toggle('hidden');
   });
-  document.addEventListener('click', e => {
+
+  const handleOutsideClose = (e) => {
     if (!e.target.closest('#user-menu-btn')) {
       document.getElementById('user-dropdown')?.classList.add('hidden');
     }
     if (!e.target.closest('.notification-menu-wrap')) {
       closeNotificationDropdown();
     }
-  });
+  };
+  document.addEventListener('click', handleOutsideClose);
+  document.addEventListener('touchend', handleOutsideClose, { passive: true });
 
   // Sign out
   document.getElementById('signout-btn')?.addEventListener('click', async () => {
@@ -1791,27 +1794,36 @@ export function toggleNotificationDropdown(e) {
   if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
   const panel = document.getElementById('notification-dropdown');
   if (!panel) return;
-  const isHidden = panel.classList.contains('hidden');
+  const isHidden = panel.classList.contains('hidden') || panel.style.display === 'none';
   if (isHidden) {
     panel.classList.remove('hidden');
+    panel.style.display = 'block';
     renderNotifications();
   } else {
     panel.classList.add('hidden');
+    panel.style.display = 'none';
   }
 }
 window.toggleNotificationDropdown = toggleNotificationDropdown;
 
 export function closeNotificationDropdown() {
   const panel = document.getElementById('notification-dropdown');
-  if (panel) panel.classList.add('hidden');
+  if (panel) {
+    panel.classList.add('hidden');
+    panel.style.display = 'none';
+  }
 }
 window.closeNotificationDropdown = closeNotificationDropdown;
 
 export function markAllNotificationsAsRead(e) {
   if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-  const list = getNotifications();
-  list.forEach(n => n.read = true);
-  saveNotifications(list);
+  try {
+    const list = getNotifications();
+    list.forEach(n => n.read = true);
+    saveNotifications(list);
+  } catch (err) {
+    console.error('Error marking notifications read:', err);
+  }
   closeNotificationDropdown();
 }
 window.markAllNotificationsAsRead = markAllNotificationsAsRead;
