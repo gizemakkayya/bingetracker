@@ -252,6 +252,10 @@ function bindEvents() {
   });
   document.getElementById('detail-modal-close')?.addEventListener('click', closeDetailModal);
 
+  document.getElementById('friend-modal-backdrop')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeFriendModal();
+  });
+
   // Modal save
   document.getElementById('detail-save-btn')?.addEventListener('click', saveDetailModal);
   document.getElementById('detail-delete-btn')?.addEventListener('click', deleteFromModal);
@@ -288,6 +292,7 @@ function showTab(tab) {
     page.style.display = page.dataset.page === tab ? '' : 'none';
   });
   if (tab === 'mylist') renderWatchlistTab();
+  if (tab === 'social') renderSocialTab();
   if (tab === 'stats') loadStats();
 }
 
@@ -1135,6 +1140,86 @@ window.closeDetailModal = function() {
   detailTarget = null;
 };
 
+window.saveDetailModal = async function() {
+  try {
+    const tmdbId    = parseInt(document.getElementById('modal-tmdb-id')?.value);
+    const mediaType = document.getElementById('modal-media-type')?.value;
+    const title     = document.getElementById('modal-title')?.value;
+    const poster    = document.getElementById('modal-poster')?.value;
+    const status    = document.getElementById('modal-status-val')?.value || 'watchlist';
+    const rating    = parseInt(document.getElementById('modal-rating-val')?.value) || null;
+    const notes     = document.getElementById('modal-notes')?.value || '';
+    const runtime   = parseInt(document.getElementById('modal-runtime')?.value) || null;
+    const curSeason = parseInt(document.getElementById('modal-tracked-season')?.value) || 1;
+    const curEp     = parseInt(document.getElementById('modal-tracked-episode')?.value) || 1;
+    const totalSeasons  = parseInt(document.getElementById('modal-total-seasons')?.value) || null;
+    const totalEpisodes = parseInt(document.getElementById('modal-total-episodes')?.value) || null;
+    let genres = [];
+    try { genres = JSON.parse(document.getElementById('modal-genres')?.value || '[]'); } catch(e){}
+
+    const payload = {
+      tmdb_id: tmdbId,
+      media_type: mediaType,
+      title,
+      poster_path: poster,
+      genres,
+      status,
+      rating,
+      notes,
+      runtime_minutes: runtime,
+      current_season: mediaType === 'tv' ? curSeason : null,
+      current_episode: mediaType === 'tv' ? curEp : null,
+      total_seasons: totalSeasons,
+      total_episodes: totalEpisodes
+    };
+
+    if (detailTarget) {
+      const updated = await updateWatchlistItem(detailTarget.id, payload);
+      const idx = watchlistItems.findIndex(w => w.id === detailTarget.id);
+      if (idx !== -1) watchlistItems[idx] = updated;
+      showToast(`"${title}" güncellendi ✓`, 'success');
+    } else {
+      const added = await addToWatchlist(currentUser.id, payload);
+      watchlistItems.unshift(added);
+      showToast(`"${title}" listene eklendi ✓`, 'success');
+    }
+
+    updateNavCounts();
+    if (activeTab === 'mylist') renderWatchlistTab();
+    closeDetailModal();
+
+    logUserActivity({
+      actionType: status === 'watched' ? 'WATCHED_MOVIE' : 'ADDED_TO_WATCHLIST',
+      mediaType,
+      tmdbId,
+      title,
+      posterPath: poster,
+      rating,
+      detailText: status === 'watched' 
+        ? `içeriğini tamamladı ${rating ? `ve ★ ${rating} puan verdi` : ''}` 
+        : `içeriğini listeye ekledi (${status === 'watching' ? 'İzliyor' : 'İzlenecek'})`
+    });
+
+  } catch (err) {
+    showToast('Kaydetme hatası: ' + err.message, 'error');
+  }
+};
+
+window.deleteFromModal = async function() {
+  if (!detailTarget) return;
+  if (!confirm(`"${detailTarget.title}" içeriğini listenizden kaldırmak istediğinize emin misiniz?`)) return;
+  try {
+    await deleteWatchlistItem(detailTarget.id);
+    watchlistItems = watchlistItems.filter(w => w.id !== detailTarget.id);
+    updateNavCounts();
+    if (activeTab === 'mylist') renderWatchlistTab();
+    closeDetailModal();
+    showToast('İçerik listeden kaldırıldı.', 'info');
+  } catch (err) {
+    showToast('Kaldırma hatası: ' + err.message, 'error');
+  }
+};
+
 // ── Fireworks & Celebration Engine ───────────────────────────────────────────
 let fireworksAnimationId = null;
 
@@ -1522,7 +1607,840 @@ async function changePassword() {
   }
 }
 
-// ── Toast notifications ───────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════════
+// ── SOSYAL & ARKADAŞLAR SİSTEMİ (FRIENDS, FEED & PROFILES) ───────────────────────
+// ═════════════════════════════════════════════════════════════════════════════════
+
+let socialSubTab = 'feed';
+let activeFriendModalUser = null;
+let friendModalFilter = 'all';
+
+// Mock & Initial Social Database
+const INITIAL_SOCIAL_USERS = [
+  {
+    id: 'user_ahmet',
+    username: 'ahmetfuad',
+    name: 'Ahmet Fuad Kahriman',
+    avatar: 'assets/proje_muduru.jpg',
+    role: '👑 Proje Müdürü',
+    bio: 'BingeTracker Proje Müdürü • IMDb Top 250 & Bilim Kurgu Tutkunu 🚀',
+    stats: { movies: 142, series: 28, hours: 490, avgRating: 8.9 },
+    watchlist: [
+      { tmdb_id: 1396, media_type: 'tv', title: 'Breaking Bad', poster_path: '/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg', status: 'watched', rating: 10, current_season: 5, current_episode: 16, total_seasons: 5, total_episodes: 62, notes: 'Televizyon tarihinin en görkemli başyapıtı. Walter White karakter gelişimi eşsiz.', updated_at: '2 saat önce' },
+      { tmdb_id: 157336, media_type: 'movie', title: 'Interstellar', poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg', status: 'watched', rating: 10, notes: 'Hans Zimmer müzikleri ve Nolan dehası. Her izleyişte büyüleniyorum.', updated_at: 'Dün' },
+      { tmdb_id: 253412, media_type: 'tv', title: 'Lucky', poster_path: '/9BAAyR7r1d4fF1z1y0pB9s8F5M.jpg', status: 'watching', rating: 8, current_season: 1, current_episode: 4, total_seasons: 1, total_episodes: 8, notes: 'Anya Taylor-Joy performansı çok sürükleyici.', updated_at: '3 saat önce' },
+      { tmdb_id: 110492, media_type: 'tv', title: 'Severance', poster_path: '/jG57fepU3Zl8cRj1dY1eC1Y0gH.jpg', status: 'watching', rating: 9, current_season: 1, current_episode: 7, total_seasons: 2, total_episodes: 18, notes: 'Bölüm sonları nefes kesici. Kesinlikle izleyin.', updated_at: '3 gün önce' },
+      { tmdb_id: 693134, media_type: 'movie', title: 'Dune: Part Two', poster_path: '/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg', status: 'watched', rating: 9, notes: 'Sinematografi ve ses miksajı olağanüstü seviyede.', updated_at: 'Geçen hafta' },
+      { tmdb_id: 76331, media_type: 'tv', title: 'Succession', poster_path: '/7T656W6h2q9v7P8pB7j7eZ2L4M.jpg', status: 'watched', rating: 10, notes: 'Senaryo ve diyaloglar ders niteliğinde.', updated_at: '2 hafta önce' }
+    ]
+  },
+  {
+    id: 'user_gizem',
+    username: 'gizemakkayya',
+    name: 'Gizem Akkayya',
+    avatar: null,
+    role: '⭐ Geliştirici & UI Designer',
+    bio: 'Dizi maratoncusu • Dark mode & cam tasarımlar aşığı 🎨',
+    stats: { movies: 98, series: 42, hours: 620, avgRating: 8.7 },
+    watchlist: [
+      { tmdb_id: 94605, media_type: 'tv', title: 'Arcane', poster_path: '/abf8tHznhSvl9B9KyCeoL0eh9pf.jpg', status: 'watched', rating: 10, current_season: 2, current_episode: 9, total_seasons: 2, total_episodes: 18, notes: 'Animasyon kalitesi ve müzikler tek kelimeyle kusursuz.', updated_at: '5 saat önce' },
+      { tmdb_id: 66732, media_type: 'tv', title: 'Stranger Things', poster_path: '/49WJfeN0moxb9IPfGn8AIqMGskD.jpg', status: 'watched', rating: 9, current_season: 4, current_episode: 9, total_seasons: 5, total_episodes: 42, notes: 'Nostaljik 80\'ler atmosferi harika yansıtılmış.', updated_at: '2 gün önce' },
+      { tmdb_id: 100088, media_type: 'tv', title: 'The Last of Us', poster_path: '/uKvVjHNqB5VmOrdxqAt2V7JtT.jpg', status: 'watching', rating: 9, current_season: 1, current_episode: 6, total_seasons: 2, total_episodes: 16, notes: 'Pedro Pascal ve Bella Ramsey harika bir ikili.', updated_at: '4 gün önce' },
+      { tmdb_id: 550, media_type: 'movie', title: 'Fight Club', poster_path: '/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg', status: 'watched', rating: 10, notes: 'Klasik başyapıt.', updated_at: '1 ay önce' },
+      { tmdb_id: 27205, media_type: 'movie', title: 'Inception', poster_path: '/o22eO111s9WkE2n7rQ8d6V4L.jpg', status: 'watchlist', notes: 'Hafta sonu tekrar izlenecek.', updated_at: '1 hafta önce' }
+    ]
+  },
+  {
+    id: 'user_emre',
+    username: 'emrecan',
+    name: 'Emre Can',
+    avatar: null,
+    role: '🎬 Sinema Eleştirmeni',
+    bio: 'Klasik Hollywood, Nolan & A24 yapımları takipçisi',
+    stats: { movies: 215, series: 14, hours: 380, avgRating: 8.3 },
+    watchlist: [
+      { tmdb_id: 872585, media_type: 'movie', title: 'Oppenheimer', poster_path: '/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg', status: 'watched', rating: 9, notes: 'Biyografi türünün zirve noktalarından biri.', updated_at: '6 saat önce' },
+      { tmdb_id: 244786, media_type: 'movie', title: 'Whiplash', poster_path: '/7fn624j5lj3xTme2SgiLCeuedmO.jpg', status: 'watched', rating: 10, notes: 'Ritim ve oyunculuk şöleni.', updated_at: '3 gün önce' },
+      { tmdb_id: 680, media_type: 'movie', title: 'Pulp Fiction', poster_path: '/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg', status: 'watched', rating: 9, notes: 'Tarantino dehası.', updated_at: '2 hafta önce' },
+      { tmdb_id: 496243, media_type: 'movie', title: 'Parasite', poster_path: '/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg', status: 'watched', rating: 10, notes: 'Sınıf çatışmasını anlatan en iyi film.', updated_at: '3 hafta önce' }
+    ]
+  },
+  {
+    id: 'user_selin',
+    username: 'selinyilmaz',
+    name: 'Selin Yılmaz',
+    avatar: null,
+    role: '🍿 Dizi Bağımlısı',
+    bio: 'Mini diziler & anime maratoncusu. Bir günde bir sezon bitiririm ✨',
+    stats: { movies: 65, series: 56, hours: 710, avgRating: 8.8 },
+    watchlist: [
+      { tmdb_id: 85937, media_type: 'tv', title: 'Chernobyl', poster_path: '/hlLXt2tOPT6RRnjiUmoxyG1LTFi.jpg', status: 'watched', rating: 10, current_season: 1, current_episode: 5, total_seasons: 1, total_episodes: 5, notes: 'Atmosfer gerilimi inanılmaz yüksek, 5 bölümde mükemmel anlatım.', updated_at: '1 gün önce' },
+      { tmdb_id: 87108, media_type: 'tv', title: 'The Queen\'s Gambit', poster_path: '/zU0htwkhNvBQdVSIKB9uf6hgMGW.jpg', status: 'watched', rating: 9, current_season: 1, current_episode: 7, total_seasons: 1, total_episodes: 7, notes: 'Satrancı bu kadar heyecanlı kılabilmek büyük başarı.', updated_at: '4 gün önce' },
+      { tmdb_id: 1429, media_type: 'tv', title: 'Attack on Titan', poster_path: '/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg', status: 'watching', rating: 10, current_season: 4, current_episode: 28, total_seasons: 4, total_episodes: 87, notes: 'Kurgusu akıl almaz seviyede derin.', updated_at: 'Dün' }
+    ]
+  },
+  {
+    id: 'user_canberk',
+    username: 'canberk',
+    name: 'Canberk Tekin',
+    avatar: null,
+    role: '🔍 Polisiye & Gerilim',
+    bio: 'David Fincher & Gerilim/Gizem türü aşığı',
+    stats: { movies: 112, series: 19, hours: 340, avgRating: 8.5 },
+    watchlist: [
+      { tmdb_id: 67744, media_type: 'tv', title: 'Mindhunter', poster_path: '/fbKE87mojpIETWepSbD5Qt741d7.jpg', status: 'watched', rating: 10, current_season: 2, current_episode: 9, total_seasons: 2, total_episodes: 19, notes: 'Psikolojik derinliği ve sorgulama sahneleri kusursuz.', updated_at: '2 gün önce' },
+      { tmdb_id: 807, media_type: 'movie', title: 'Se7en', poster_path: '/6yoghtyTpznpBik8EngEmJskVUO.jpg', status: 'watched', rating: 10, notes: 'Fincher klasiği, sonu unutulmaz.', updated_at: '5 gün önce' },
+      { tmdb_id: 1949, media_type: 'movie', title: 'Zodiac', poster_path: '/6Y0w42aGfA8q1bH4y4Jg.jpg', status: 'watched', rating: 9, notes: 'Ayrıntılara verilen özen mükemmel.', updated_at: '2 hafta önce' }
+    ]
+  }
+];
+
+const INITIAL_ACTIVITIES = [
+  {
+    id: 'act_1',
+    userId: 'user_ahmet',
+    actionType: 'COMPLETED_SERIES',
+    mediaType: 'tv',
+    tmdbId: 1396,
+    title: 'Breaking Bad',
+    posterPath: '/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg',
+    rating: 10,
+    detailText: 'tüm sezon ve bölümlerini bitirdi ve ★ 10 puan verdi!',
+    note: 'Televizyon tarihinin en görkemli başyapıtı. Walter White karakter gelişimi eşsiz.',
+    timeAgo: '2 saat önce'
+  },
+  {
+    id: 'act_2',
+    userId: 'user_gizem',
+    actionType: 'WATCHING_EPISODE',
+    mediaType: 'tv',
+    tmdbId: 253412,
+    title: 'Lucky',
+    posterPath: '/9BAAyR7r1d4fF1z1y0pB9s8F5M.jpg',
+    rating: 8,
+    season: 1,
+    episode: 3,
+    detailText: '1. Sezon 3. Bölüm\'ü izledi.',
+    timeAgo: '3 saat önce'
+  },
+  {
+    id: 'act_3',
+    userId: 'user_emre',
+    actionType: 'RATED_MOVIE',
+    mediaType: 'movie',
+    tmdbId: 872585,
+    title: 'Oppenheimer',
+    posterPath: '/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
+    rating: 9,
+    detailText: 'filmine ★ 9 puan verdi.',
+    note: 'Biyografi türünün zirve noktalarından biri.',
+    timeAgo: '6 saat önce'
+  },
+  {
+    id: 'act_4',
+    userId: 'user_selin',
+    actionType: 'WATCHING_EPISODE',
+    mediaType: 'tv',
+    tmdbId: 1429,
+    title: 'Attack on Titan',
+    posterPath: '/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg',
+    rating: 10,
+    season: 4,
+    episode: 28,
+    detailText: '4. Sezon 28. Bölüm\'ü izledi.',
+    note: 'Kurgusu akıl almaz seviyede derin.',
+    timeAgo: 'Dün'
+  },
+  {
+    id: 'act_5',
+    userId: 'user_ahmet',
+    actionType: 'RATED_MOVIE',
+    mediaType: 'movie',
+    tmdbId: 157336,
+    title: 'Interstellar',
+    posterPath: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+    rating: 10,
+    detailText: 'filmini tekrar izledi ve ★ 10 puan verdi.',
+    note: 'Hans Zimmer müzikleri ve Nolan dehası. Her izleyişte büyüleniyorum.',
+    timeAgo: 'Dün'
+  },
+  {
+    id: 'act_6',
+    userId: 'user_canberk',
+    actionType: 'COMPLETED_SERIES',
+    mediaType: 'tv',
+    tmdbId: 67744,
+    title: 'Mindhunter',
+    posterPath: '/fbKE87mojpIETWepSbD5Qt741d7.jpg',
+    rating: 10,
+    detailText: '2. Sezon\'u tamamladı.',
+    timeAgo: '2 gün önce'
+  }
+];
+
+function getFollowingUserIds() {
+  const saved = localStorage.getItem('binge_following_ids');
+  if (saved) {
+    try { return new Set(JSON.parse(saved)); } catch (e) {}
+  }
+  return new Set(['user_ahmet', 'user_gizem']);
+}
+
+function saveFollowingUserIds(set) {
+  localStorage.setItem('binge_following_ids', JSON.stringify(Array.from(set)));
+}
+
+function getSocialUsers() {
+  return INITIAL_SOCIAL_USERS;
+}
+
+function getUserActivities() {
+  const saved = localStorage.getItem('binge_social_activities');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      return [...parsed, ...INITIAL_ACTIVITIES];
+    } catch (e) {}
+  }
+  return INITIAL_ACTIVITIES;
+}
+
+function logUserActivity(act) {
+  const newAct = {
+    id: 'act_' + Date.now(),
+    userId: currentUser?.id || 'current_user',
+    userName: currentUser?.user_metadata?.username || currentUser?.email?.split('@')[0] || 'Sen',
+    isMe: true,
+    timeAgo: 'Az önce',
+    ...act
+  };
+  const saved = localStorage.getItem('binge_social_activities');
+  let list = [];
+  if (saved) {
+    try { list = JSON.parse(saved); } catch (e) {}
+  }
+  list.unshift(newAct);
+  localStorage.setItem('binge_social_activities', JSON.stringify(list.slice(0, 30)));
+  if (activeTab === 'social' && socialSubTab === 'feed') {
+    renderSocialFeed();
+  }
+}
+
+export function renderSocialTab() {
+  const following = getFollowingUserIds();
+  const countEl = document.getElementById('social-friends-count');
+  if (countEl) countEl.textContent = following.size;
+
+  switchSocialSubTab(socialSubTab);
+}
+
+export function switchSocialSubTab(subTab) {
+  socialSubTab = subTab;
+  ['feed', 'friends', 'discover'].forEach(t => {
+    const btn = document.getElementById(`subtab-btn-${t}`);
+    const view = document.getElementById(`social-view-${t}`);
+    if (btn) btn.classList.toggle('active', t === subTab);
+    if (view) view.style.display = t === subTab ? '' : 'none';
+  });
+
+  if (subTab === 'feed') renderSocialFeed();
+  else if (subTab === 'friends') renderSocialFriends();
+  else if (subTab === 'discover') renderSocialDiscover();
+}
+window.switchSocialSubTab = switchSocialSubTab;
+
+function renderSocialFeed() {
+  const container = document.getElementById('social-feed-container');
+  if (!container) return;
+
+  const following = getFollowingUserIds();
+  const allUsers = getSocialUsers();
+  const allActs = getUserActivities();
+
+  // Filter activities by followed users + current user
+  const relevantActs = allActs.filter(a => a.isMe || following.has(a.userId));
+
+  if (!relevantActs.length) {
+    container.innerHTML = `
+      <div class="social-empty-feed">
+        <div class="empty-feed-icon"><i data-lucide="users" class="icon-xl"></i></div>
+        <h3>Henüz Akışta Bir Aktivite Yok</h3>
+        <p>Arkadaşlarını takip ederek onların izledikleri film ve dizileri buradan canlı olarak takip edebilirsin.</p>
+        <button type="button" class="btn btn-primary btn-sm" onclick="switchSocialSubTab('discover')">
+          <i data-lucide="user-plus" class="icon-xs"></i>
+          <span>Arkadaş Keşfet</span>
+        </button>
+      </div>
+    `;
+    renderIcons(container);
+    renderSocialSidebar();
+    return;
+  }
+
+  container.innerHTML = relevantActs.map(act => {
+    const user = allUsers.find(u => u.id === act.userId);
+    const userName = act.isMe ? 'Sen' : (user ? user.name : (act.userName || 'Kullanıcı'));
+    const userHandle = user ? `@${user.username}` : (act.isMe ? '@sen' : '');
+    const userAvatar = user?.avatar;
+    const userInitials = user ? user.name.slice(0, 2).toUpperCase() : (userName.slice(0, 2).toUpperCase());
+    const poster = act.posterPath ? getPosterUrl(act.posterPath, 'w185') : null;
+
+    let actionBadgeClass = 'action-watching';
+    let actionBadgeText = 'İzliyor';
+    if (act.actionType === 'COMPLETED_SERIES' || act.actionType === 'WATCHED_MOVIE') {
+      actionBadgeClass = 'action-completed';
+      actionBadgeText = 'Tamamladı ✓';
+    } else if (act.actionType === 'RATED_MOVIE' || act.actionType === 'RATED') {
+      actionBadgeClass = 'action-rated';
+      actionBadgeText = 'Puanladı ★';
+    }
+
+    return `
+      <div class="social-activity-card">
+        <div class="activity-card-header">
+          <div class="activity-user-clickable" onclick="${act.userId && act.userId !== 'current_user' ? `openFriendProfile('${act.userId}')` : ''}">
+            <div class="activity-avatar-wrap">
+              ${userAvatar
+                ? `<img src="${userAvatar}" alt="${escHtml(userName)}" class="activity-avatar-img">`
+                : `<div class="activity-avatar-initials">${userInitials}</div>`
+              }
+            </div>
+            <div class="activity-user-meta">
+              <div class="activity-user-name-row">
+                <span class="activity-user-name">${escHtml(userName)}</span>
+                ${user?.role ? `<span class="activity-user-role">${user.role}</span>` : ''}
+              </div>
+              <span class="activity-user-time">${userHandle ? `${userHandle} • ` : ''}${act.timeAgo}</span>
+            </div>
+          </div>
+
+          <span class="activity-type-pill ${actionBadgeClass}">${actionBadgeText}</span>
+        </div>
+
+        <div class="activity-card-body">
+          <div class="activity-media-box" onclick="showDetailModal(${act.tmdbId}, '${act.mediaType}')">
+            ${poster 
+              ? `<img src="${poster}" alt="${escHtml(act.title)}" class="activity-media-poster">` 
+              : `<div class="activity-media-poster-placeholder"><i data-lucide="${act.mediaType === 'movie' ? 'film' : 'tv'}" class="icon-md"></i></div>`
+            }
+            <div class="activity-media-info">
+              <div class="activity-media-title-row">
+                <h4 class="activity-media-title">${escHtml(act.title)}</h4>
+                <span class="badge badge-${act.mediaType}">${act.mediaType === 'movie' ? 'Film' : 'Dizi'}</span>
+              </div>
+              <p class="activity-detail-desc">${escHtml(userName)} ${escHtml(act.detailText)}</p>
+              ${act.rating ? `
+                <div class="activity-rating-pill">
+                  <i data-lucide="star" class="icon-xxs"></i>
+                  <span>Verilen Puan: <strong>${act.rating}/10</strong></span>
+                </div>
+              ` : ''}
+              ${act.note ? `
+                <div class="activity-note-quote">
+                  <i data-lucide="quote" class="icon-xxs"></i>
+                  <span>"${escHtml(act.note)}"</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  renderIcons(container);
+  renderSocialSidebar();
+}
+
+function renderSocialSidebar() {
+  const miniFriends = document.getElementById('social-mini-friends-list');
+  const miniSuggest = document.getElementById('social-mini-suggest-list');
+  const following = getFollowingUserIds();
+  const allUsers = getSocialUsers();
+
+  if (miniFriends) {
+    const followedUsers = allUsers.filter(u => following.has(u.id));
+    if (!followedUsers.length) {
+      miniFriends.innerHTML = `<p class="social-side-empty">Henüz kimseyi takip etmiyorsunuz.</p>`;
+    } else {
+      miniFriends.innerHTML = followedUsers.map(u => `
+        <div class="social-mini-item" onclick="openFriendProfile('${u.id}')">
+          <div class="mini-avatar-wrap">
+            ${u.avatar
+              ? `<img src="${u.avatar}" alt="${escHtml(u.name)}" class="mini-avatar-img">`
+              : `<div class="mini-avatar-initials">${u.name.slice(0,2).toUpperCase()}</div>`
+            }
+          </div>
+          <div class="mini-user-info">
+            <div class="mini-user-name">${escHtml(u.name)}</div>
+            <div class="mini-user-sub">${u.stats.movies + u.stats.series} İçerik • ★ ${u.stats.avgRating}</div>
+          </div>
+          <button type="button" class="mini-view-btn" title="Profili ve Listeyi Gör">
+            <i data-lucide="chevron-right" class="icon-xs"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+  }
+
+  if (miniSuggest) {
+    const suggestedUsers = allUsers.filter(u => !following.has(u.id));
+    if (!suggestedUsers.length) {
+      miniSuggest.innerHTML = `<p class="social-side-empty">Tüm önerilen profilleri takip ediyorsunuz ✓</p>`;
+    } else {
+      miniSuggest.innerHTML = suggestedUsers.map(u => `
+        <div class="social-mini-item">
+          <div class="mini-avatar-wrap" onclick="openFriendProfile('${u.id}')">
+            ${u.avatar
+              ? `<img src="${u.avatar}" alt="${escHtml(u.name)}" class="mini-avatar-img">`
+              : `<div class="mini-avatar-initials">${u.name.slice(0,2).toUpperCase()}</div>`
+            }
+          </div>
+          <div class="mini-user-info" onclick="openFriendProfile('${u.id}')">
+            <div class="mini-user-name">${escHtml(u.name)}</div>
+            <div class="mini-user-sub">${u.role || `@${u.username}`}</div>
+          </div>
+          <button type="button" class="btn btn-primary btn-xxs" onclick="toggleFollowUser('${u.id}')">
+            <i data-lucide="plus" class="icon-xxs"></i>
+            <span>Takip Et</span>
+          </button>
+        </div>
+      `).join('');
+    }
+  }
+
+  renderIcons(document.querySelector('.social-feed-sidebar'));
+}
+
+function renderSocialFriends() {
+  const grid = document.getElementById('social-friends-grid');
+  if (!grid) return;
+
+  const following = getFollowingUserIds();
+  const allUsers = getSocialUsers();
+  const followedUsers = allUsers.filter(u => following.has(u.id));
+
+  if (!followedUsers.length) {
+    grid.innerHTML = `
+      <div class="friends-empty-panel">
+        <div class="empty-feed-icon"><i data-lucide="user-x" class="icon-xl"></i></div>
+        <h3>Henüz Takip Ettiğin Bir Arkadaşın Yok</h3>
+        <p>Arkadaşlarını bularak listelerini ve incelemelerini takip edebilirsin.</p>
+        <button type="button" class="btn btn-primary btn-sm" onclick="switchSocialSubTab('discover')">
+          <i data-lucide="user-plus" class="icon-xs"></i>
+          <span>Arkadaş Bul & Ekle</span>
+        </button>
+      </div>
+    `;
+    renderIcons(grid);
+    return;
+  }
+
+  grid.innerHTML = followedUsers.map(u => {
+    const isFollowing = following.has(u.id);
+    const lastItem = u.watchlist[0];
+    const poster = lastItem?.poster_path ? getPosterUrl(lastItem.poster_path, 'w185') : null;
+
+    return `
+      <div class="friend-card">
+        <div class="friend-card-top">
+          <div class="friend-avatar-row" onclick="openFriendProfile('${u.id}')">
+            <div class="friend-card-avatar-wrap">
+              ${u.avatar
+                ? `<img src="${u.avatar}" alt="${escHtml(u.name)}" class="friend-card-avatar">`
+                : `<div class="friend-card-initials">${u.name.slice(0,2).toUpperCase()}</div>`
+              }
+            </div>
+            <div class="friend-card-name-block">
+              <h4 class="friend-card-name">${escHtml(u.name)}</h4>
+              <span class="friend-card-handle">@${u.username}</span>
+              ${u.role ? `<span class="friend-card-badge">${u.role}</span>` : ''}
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-xs btn-unfollow" onclick="toggleFollowUser('${u.id}')" title="Takipten Çık">
+            <i data-lucide="user-check" class="icon-xxs"></i>
+            <span>Takip Ediliyor</span>
+          </button>
+        </div>
+
+        <p class="friend-card-bio">${escHtml(u.bio)}</p>
+
+        <!-- Stats Chips -->
+        <div class="friend-stats-strip">
+          <div class="f-stat-chip">🎬 <strong>${u.stats.movies}</strong> Film</div>
+          <div class="f-stat-chip">📺 <strong>${u.stats.series}</strong> Dizi</div>
+          <div class="f-stat-chip">⭐ <strong>${u.stats.avgRating}</strong> Puan</div>
+        </div>
+
+        <!-- Last watched preview -->
+        ${lastItem ? `
+          <div class="friend-last-watched-box" onclick="openFriendProfile('${u.id}')">
+            ${poster ? `<img src="${poster}" class="f-last-poster" alt="${escHtml(lastItem.title)}">` : ''}
+            <div class="f-last-info">
+              <div class="f-last-label">Son Hareket (${lastItem.updated_at})</div>
+              <div class="f-last-title">${escHtml(lastItem.title)}</div>
+              <div class="f-last-sub">${lastItem.status === 'watched' ? 'İzlendi ✓' : 'İzliyor 🍿'} • ★ ${lastItem.rating || 0}/10</div>
+            </div>
+          </div>
+        ` : ''}
+
+        <button type="button" class="btn btn-primary friend-view-list-btn" onclick="openFriendProfile('${u.id}')">
+          <i data-lucide="bookmark" class="icon-xs"></i>
+          <span>İzleme Listesini & Profilini Gör</span>
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  renderIcons(grid);
+}
+
+export function handleSocialSearch(q) {
+  renderSocialDiscover(q);
+}
+window.handleSocialSearch = handleSocialSearch;
+
+function renderSocialDiscover(query = '') {
+  const grid = document.getElementById('social-discover-grid');
+  const titleEl = document.getElementById('social-discover-title');
+  if (!grid) return;
+
+  const following = getFollowingUserIds();
+  const allUsers = getSocialUsers();
+
+  const q = query.trim().toLowerCase();
+  let results = allUsers;
+  if (q) {
+    results = allUsers.filter(u => 
+      u.name.toLowerCase().includes(q) || 
+      u.username.toLowerCase().includes(q) || 
+      (u.role && u.role.toLowerCase().includes(q)) ||
+      (u.bio && u.bio.toLowerCase().includes(q))
+    );
+    if (titleEl) titleEl.textContent = `"${escHtml(query)}" için Arama Sonuçları (${results.length})`;
+  } else {
+    if (titleEl) titleEl.textContent = `Tüm Kullanıcılar & Öneriler (${results.length})`;
+  }
+
+  if (!results.length) {
+    grid.innerHTML = `
+      <div class="friends-empty-panel">
+        <div class="empty-feed-icon"><i data-lucide="search-x" class="icon-xl"></i></div>
+        <h3>Aradığınız Kriterde Kullanıcı Bulunamadı</h3>
+        <p>"${escHtml(query)}" adına uygun kimse bulunamadı. Başka bir isim aramayı deneyin.</p>
+      </div>
+    `;
+    renderIcons(grid);
+    return;
+  }
+
+  grid.innerHTML = results.map(u => {
+    const isFollowing = following.has(u.id);
+    return `
+      <div class="friend-card discover-card">
+        <div class="friend-card-top">
+          <div class="friend-avatar-row" onclick="openFriendProfile('${u.id}')">
+            <div class="friend-card-avatar-wrap">
+              ${u.avatar
+                ? `<img src="${u.avatar}" alt="${escHtml(u.name)}" class="friend-card-avatar">`
+                : `<div class="friend-card-initials">${u.name.slice(0,2).toUpperCase()}</div>`
+              }
+            </div>
+            <div class="friend-card-name-block">
+              <h4 class="friend-card-name">${escHtml(u.name)}</h4>
+              <span class="friend-card-handle">@${u.username}</span>
+              ${u.role ? `<span class="friend-card-badge">${u.role}</span>` : ''}
+            </div>
+          </div>
+          
+          <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-xs" onclick="toggleFollowUser('${u.id}')">
+            <i data-lucide="${isFollowing ? 'check' : 'user-plus'}" class="icon-xxs"></i>
+            <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
+          </button>
+        </div>
+
+        <p class="friend-card-bio">${escHtml(u.bio)}</p>
+
+        <!-- Stats Chips -->
+        <div class="friend-stats-strip">
+          <div class="f-stat-chip">🎬 <strong>${u.stats.movies}</strong> Film</div>
+          <div class="f-stat-chip">📺 <strong>${u.stats.series}</strong> Dizi</div>
+          <div class="f-stat-chip">⏱️ <strong>${u.stats.hours}</strong> Saat</div>
+        </div>
+
+        <button type="button" class="btn btn-secondary friend-view-list-btn" onclick="openFriendProfile('${u.id}')">
+          <i data-lucide="eye" class="icon-xs"></i>
+          <span>Profili & Listeyi İncele</span>
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  renderIcons(grid);
+}
+
+export function toggleFollowUser(userId) {
+  const following = getFollowingUserIds();
+  const allUsers = getSocialUsers();
+  const user = allUsers.find(u => u.id === userId);
+  const userName = user ? user.name : 'Kullanıcı';
+
+  if (following.has(userId)) {
+    following.delete(userId);
+    saveFollowingUserIds(following);
+    showToast(`${userName} takipten çıkarıldı.`, 'info');
+  } else {
+    following.add(userId);
+    saveFollowingUserIds(following);
+    showToast(`${userName} takip ediliyor! ✓`, 'success');
+  }
+
+  renderSocialTab();
+
+  // If friend modal is open, re-render header button
+  if (activeFriendModalUser && activeFriendModalUser.id === userId) {
+    openFriendProfile(userId, friendModalFilter);
+  }
+}
+window.toggleFollowUser = toggleFollowUser;
+
+export function openFriendProfile(userId, filter = 'all') {
+  const allUsers = getSocialUsers();
+  const user = allUsers.find(u => u.id === userId);
+  if (!user) return;
+
+  activeFriendModalUser = user;
+  friendModalFilter = filter;
+
+  const backdrop = document.getElementById('friend-modal-backdrop');
+  const bodyEl = document.getElementById('friend-modal-body');
+  if (!backdrop || !bodyEl) return;
+
+  const following = getFollowingUserIds();
+  const isFollowing = following.has(user.id);
+
+  // Filter friend's watchlist items
+  const allItems = user.watchlist || [];
+  let filteredItems = allItems;
+  if (filter !== 'all') {
+    filteredItems = allItems.filter(i => i.status === filter);
+  }
+
+  const watchingCount = allItems.filter(i => i.status === 'watching').length;
+  const watchedCount = allItems.filter(i => i.status === 'watched').length;
+  const watchlistCount = allItems.filter(i => i.status === 'watchlist').length;
+
+  bodyEl.innerHTML = `
+    <!-- Modal Hero Banner -->
+    <div class="friend-modal-banner">
+      <button type="button" class="modal-banner-close-btn" onclick="closeFriendModal()" aria-label="Kapat">
+        <i data-lucide="x" class="icon-sm"></i>
+      </button>
+      <div class="friend-banner-glow"></div>
+    </div>
+
+    <!-- Modal Content Wrap -->
+    <div class="friend-modal-content-wrap">
+      <!-- Profile Header Row -->
+      <div class="friend-profile-hero">
+        <div class="friend-hero-avatar-wrap">
+          ${user.avatar
+            ? `<img src="${user.avatar}" alt="${escHtml(user.name)}" class="friend-hero-avatar">`
+            : `<div class="friend-hero-initials">${user.name.slice(0,2).toUpperCase()}</div>`
+          }
+        </div>
+
+        <div class="friend-hero-details">
+          <div class="friend-hero-top-row">
+            <div>
+              <h2 class="friend-hero-name" id="friend-modal-name">${escHtml(user.name)}</h2>
+              <span class="friend-hero-handle">@${user.username}</span>
+              ${user.role ? `<span class="friend-card-badge">${user.role}</span>` : ''}
+            </div>
+
+            <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-sm" onclick="toggleFollowUser('${user.id}')">
+              <i data-lucide="${isFollowing ? 'user-check' : 'user-plus'}" class="icon-xs"></i>
+              <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
+            </button>
+          </div>
+
+          <p class="friend-hero-bio">${escHtml(user.bio)}</p>
+
+          <!-- Stat Strip -->
+          <div class="friend-hero-stats-row">
+            <div class="hero-stat-card">
+              <span class="h-stat-num">${user.stats.movies}</span>
+              <span class="h-stat-label">Film</span>
+            </div>
+            <div class="hero-stat-card">
+              <span class="h-stat-num">${user.stats.series}</span>
+              <span class="h-stat-label">Dizi</span>
+            </div>
+            <div class="hero-stat-card">
+              <span class="h-stat-num">${user.stats.hours}</span>
+              <span class="h-stat-label">Toplam Saat</span>
+            </div>
+            <div class="hero-stat-card">
+              <span class="h-stat-num">★ ${user.stats.avgRating}</span>
+              <span class="h-stat-label">Ort. Puan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Watchlist Section Header -->
+      <div class="friend-watchlist-section-header">
+        <h3 class="friend-section-title">
+          <i data-lucide="bookmark" class="icon-sm"></i>
+          <span>${escHtml(user.name.split(' ')[0])}'in İzleme Listesi (${allItems.length})</span>
+        </h3>
+
+        <!-- Filter Pills -->
+        <div class="friend-filter-pills">
+          <button type="button" class="f-pill ${filter === 'all' ? 'active' : ''}" onclick="filterFriendModalList('all')">
+            Tümü (${allItems.length})
+          </button>
+          <button type="button" class="f-pill ${filter === 'watching' ? 'active' : ''}" onclick="filterFriendModalList('watching')">
+            🍿 İzliyor (${watchingCount})
+          </button>
+          <button type="button" class="f-pill ${filter === 'watched' ? 'active' : ''}" onclick="filterFriendModalList('watched')">
+            ✅ İzlendi (${watchedCount})
+          </button>
+          <button type="button" class="f-pill ${filter === 'watchlist' ? 'active' : ''}" onclick="filterFriendModalList('watchlist')">
+            📌 İzleyecek (${watchlistCount})
+          </button>
+        </div>
+      </div>
+
+      <!-- Friend Items Grid -->
+      <div class="friend-items-grid">
+        ${!filteredItems.length ? `
+          <div class="friend-items-empty">
+            <p>Bu filtrede henüz içerik bulunmuyor.</p>
+          </div>
+        ` : filteredItems.map(item => {
+          const poster = item.poster_path ? getPosterUrl(item.poster_path, 'w342') : null;
+          const existsInMyList = watchlistItems.some(w => w.tmdb_id === item.tmdb_id && w.media_type === item.media_type);
+
+          let statusTag = 'İzleme Listesi';
+          let statusClass = 'watchlist';
+          if (item.status === 'watching') {
+            statusTag = item.current_season ? `${item.current_season}. Sezon ${item.current_episode || 1}. Bölüm` : 'İzleniyor';
+            statusClass = 'watching';
+          } else if (item.status === 'watched') {
+            statusTag = 'İzlendi ✓';
+            statusClass = 'watched';
+          }
+
+          return `
+            <div class="friend-item-card">
+              <div class="friend-item-poster-wrap" onclick="showDetailModal(${item.tmdb_id}, '${item.media_type}')">
+                ${poster 
+                  ? `<img src="${poster}" alt="${escHtml(item.title)}" class="friend-item-poster" loading="lazy">` 
+                  : `<div class="friend-item-poster-placeholder"><i data-lucide="${item.media_type === 'movie' ? 'film' : 'tv'}" class="icon-lg"></i></div>`
+                }
+                <span class="friend-item-badge badge-${item.media_type}">${item.media_type === 'movie' ? 'Film' : 'Dizi'}</span>
+              </div>
+
+              <div class="friend-item-body">
+                <div class="friend-item-header">
+                  <h4 class="friend-item-title" onclick="showDetailModal(${item.tmdb_id}, '${item.media_type}')">${escHtml(item.title)}</h4>
+                  <div class="friend-item-meta-row">
+                    <span class="friend-item-status-pill ${statusClass}">${statusTag}</span>
+                    ${item.rating ? `<span class="friend-item-score-pill">★ ${item.rating}/10</span>` : ''}
+                  </div>
+                </div>
+
+                ${item.notes ? `
+                  <div class="friend-item-note-quote">
+                    <i data-lucide="message-square" class="icon-xxs"></i>
+                    <span>"${escHtml(item.notes)}"</span>
+                  </div>
+                ` : ''}
+
+                <div class="friend-item-actions">
+                  <button type="button" class="btn ${existsInMyList ? 'btn-secondary' : 'btn-primary'} btn-xs btn-add-my-list" 
+                    id="btn-add-friend-${item.tmdb_id}"
+                    onclick="addFromFriendList(${item.tmdb_id}, '${item.media_type}', '${escHtml(item.title)}', '${item.poster_path || ''}', ${item.rating || 0}, '${escHtml(item.notes || '')}')"
+                    ${existsInMyList ? 'disabled' : ''}>
+                    <i data-lucide="${existsInMyList ? 'check' : 'plus'}" class="icon-xxs"></i>
+                    <span>${existsInMyList ? 'Listende Var' : 'Listeme Ekle'}</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-xs" onclick="showDetailModal(${item.tmdb_id}, '${item.media_type}')" title="Detayları İncele">
+                    <i data-lucide="info" class="icon-xxs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  backdrop.classList.remove('hidden');
+  renderIcons(bodyEl);
+}
+window.openFriendProfile = openFriendProfile;
+
+export function filterFriendModalList(filter) {
+  if (activeFriendModalUser) {
+    openFriendProfile(activeFriendModalUser.id, filter);
+  }
+}
+window.filterFriendModalList = filterFriendModalList;
+
+export function closeFriendModal() {
+  const backdrop = document.getElementById('friend-modal-backdrop');
+  if (backdrop) backdrop.classList.add('hidden');
+  activeFriendModalUser = null;
+}
+window.closeFriendModal = closeFriendModal;
+
+export async function addFromFriendList(tmdbId, mediaType, title, posterPath, friendRating, friendNotes) {
+  try {
+    const payload = {
+      tmdb_id: tmdbId,
+      media_type: mediaType,
+      title,
+      poster_path: posterPath || null,
+      genres: [],
+      status: 'watchlist',
+      rating: null,
+      notes: friendNotes ? `Arkadaştan öneri: "${friendNotes}"` : '',
+      current_season: mediaType === 'tv' ? 1 : null,
+      current_episode: mediaType === 'tv' ? 1 : null
+    };
+
+    const added = await addToWatchlist(currentUser.id, payload);
+    watchlistItems.unshift(added);
+    updateNavCounts();
+
+    showToast(`"${title}" izleme listene eklendi! ✓`, 'success');
+
+    // Update button in modal
+    const btn = document.getElementById(`btn-add-friend-${tmdbId}`);
+    if (btn) {
+      btn.className = 'btn btn-secondary btn-xs btn-add-my-list';
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="check" class="icon-xxs"></i><span>Listende Var</span>`;
+      renderIcons(btn);
+    }
+
+    logUserActivity({
+      actionType: 'ADDED_TO_WATCHLIST',
+      mediaType,
+      tmdbId,
+      title,
+      posterPath,
+      detailText: 'içeriğini izleme listesine ekledi.'
+    });
+  } catch (err) {
+    showToast('Listeye eklenemedi: ' + err.message, 'error');
+  }
+}
+window.addFromFriendList = addFromFriendList;
+
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   if (!container) return;

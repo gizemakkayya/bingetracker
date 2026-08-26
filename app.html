@@ -213,6 +213,10 @@
       <span>Listelerim</span>
       <span class="nav-count" id="watching-count" style="display:none">0</span>
     </button>
+    <button class="nav-link" data-tab="social" role="tab" aria-selected="false" aria-label="Sosyal">
+      <i data-lucide="users" class="nav-icon"></i>
+      <span>Sosyal</span>
+    </button>
     <button class="nav-link" data-tab="stats" role="tab" aria-selected="false" aria-label="İstatistikler">
       <i data-lucide="bar-chart-3" class="nav-icon"></i>
       <span>İstatistikler</span>
@@ -385,6 +389,97 @@
   </div>
 
   <!-- ════════════════════════════════════════════════
+       TAB: SOCIAL & FRIENDS (Arkadaş Takip & Akış)
+  ════════════════════════════════════════════════ -->
+  <div data-page="social" style="display:none">
+    <div class="page-content">
+      <div class="section-header social-header-row">
+        <div>
+          <h1 class="section-title">Sosyal & Arkadaşlar</h1>
+          <p class="section-subtitle">Arkadaşlarınızın neler izlediğini görün, profillerini ve listelerini inceleyin</p>
+        </div>
+
+        <!-- Social Sub-tabs -->
+        <div class="social-nav-pills">
+          <button type="button" class="social-pill-btn active" id="subtab-btn-feed" onclick="switchSocialSubTab('feed')">
+            <i data-lucide="sparkles" class="icon-xs"></i>
+            <span>Aktivite Akışı</span>
+          </button>
+          <button type="button" class="social-pill-btn" id="subtab-btn-friends" onclick="switchSocialSubTab('friends')">
+            <i data-lucide="users" class="icon-xs"></i>
+            <span>Arkadaşlarım (<span id="social-friends-count">0</span>)</span>
+          </button>
+          <button type="button" class="social-pill-btn" id="subtab-btn-discover" onclick="switchSocialSubTab('discover')">
+            <i data-lucide="user-plus" class="icon-xs"></i>
+            <span>Arkadaş Bul</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sub-tab 1: Activity Feed -->
+      <div id="social-view-feed" class="social-view-panel">
+        <div class="social-feed-layout">
+          <!-- Feed items stream -->
+          <div class="social-feed-stream">
+            <div id="social-feed-container">
+              <!-- Rendered dynamically by JS -->
+            </div>
+          </div>
+
+          <!-- Feed sidebar (Active friends & suggestions) -->
+          <div class="social-feed-sidebar">
+            <div class="social-side-card">
+              <h3 class="side-card-title">
+                <i data-lucide="user-check" class="icon-xs"></i>
+                <span>Takip Ettiklerin</span>
+              </h3>
+              <div id="social-mini-friends-list" class="social-mini-list">
+                <!-- Rendered dynamically by JS -->
+              </div>
+            </div>
+
+            <div class="social-side-card">
+              <h3 class="side-card-title">
+                <i data-lucide="compass" class="icon-xs"></i>
+                <span>Önerilen Profiller</span>
+              </h3>
+              <div id="social-mini-suggest-list" class="social-mini-list">
+                <!-- Rendered dynamically by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-tab 2: Friends List -->
+      <div id="social-view-friends" class="social-view-panel" style="display:none">
+        <div class="friends-grid" id="social-friends-grid">
+          <!-- Rendered dynamically by JS -->
+        </div>
+      </div>
+
+      <!-- Sub-tab 3: Discover & Search Friends -->
+      <div id="social-view-discover" class="social-view-panel" style="display:none">
+        <div class="social-search-hero">
+          <div class="social-search-box">
+            <i data-lucide="search" class="social-search-icon"></i>
+            <input type="text" id="social-user-search-input" class="social-search-input"
+              placeholder="Kullanıcı adına göre ara… (Örn: Ahmet Fuad, Gizem, Sinema)"
+              oninput="handleSocialSearch(this.value)">
+          </div>
+        </div>
+
+        <div class="social-discover-header">
+          <span class="social-discover-title" id="social-discover-title">Tüm Kullanıcılar & Öneriler</span>
+        </div>
+        <div class="friends-grid" id="social-discover-grid">
+          <!-- Rendered dynamically by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
        TAB 3: STATS
   ════════════════════════════════════════════════ -->
   <div data-page="stats" style="display:none">
@@ -512,6 +607,18 @@
   <div class="modal detail-modal" id="detail-modal-card">
     <div id="detail-modal-body">
       <!-- Populated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     FRIEND PROFILE & WATCHLIST MODAL
+════════════════════════════════════════════════ -->
+<div class="modal-backdrop hidden" id="friend-modal-backdrop" role="dialog"
+  aria-modal="true" aria-labelledby="friend-modal-title">
+  <div class="modal friend-modal" id="friend-modal-card">
+    <div id="friend-modal-body">
+      <!-- Populated dynamically by JS -->
     </div>
   </div>
 </div>
