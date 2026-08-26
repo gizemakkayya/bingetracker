@@ -618,45 +618,12 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
         <button type="button" class="modal-banner-close-btn" onclick="closeDetailModal()" aria-label="Kapat">
           <i data-lucide="x" class="icon-sm"></i>
         </button>
-
-        <div class="detail-banner-content">
-          <div class="detail-banner-badges">
-            <span class="badge badge-${mediaType}">${mediaType === 'movie' ? 'Film' : 'Dizi'}</span>
-            ${year ? `<span class="detail-year-badge">${year}</span>` : ''}
-            ${statusTag ? `<span class="detail-status-badge ${isEnded ? 'ended' : ''}">${statusTag}</span>` : ''}
-            ${ratingVal ? `<span class="detail-tmdb-badge">★ ${ratingVal} TMDB</span>` : ''}
-          </div>
-          <h2 class="detail-banner-title">${escHtml(title)}</h2>
-          <div class="detail-genre-tags">
-            ${genres.slice(0, 4).map(g => `<span class="detail-genre-pill">${escHtml(g)}</span>`).join('')}
-          </div>
-
-          <!-- Watch Providers (Platformlar) -->
-          <div class="detail-providers-bar">
-            <span class="detail-providers-title">
-              <i data-lucide="tv" class="icon-xxs"></i>
-              <span>Platformlar:</span>
-            </span>
-            ${providersList.length ? `
-              <div class="detail-providers-list">
-                ${providersList.slice(0, 5).map(p => `
-                  <div class="detail-provider-badge" title="${escHtml(p.name)} (${p.type})">
-                    ${p.logo ? `<img src="${p.logo}" alt="${escHtml(p.name)}" class="provider-logo-mini">` : ''}
-                    <span class="provider-name-text">${escHtml(p.name)}</span>
-                  </div>
-                `).join('')}
-              </div>
-            ` : `
-              <span class="detail-no-provider">Platform bilgisi bulunamadı</span>
-            `}
-          </div>
-        </div>
       </div>
 
       <!-- Body Container -->
       <div class="detail-modal-body-wrap">
-        <!-- Floating Poster Row -->
-        <div class="detail-poster-floating-row">
+        <!-- Hero Section: Poster on Left + Meta & Providers on Right -->
+        <div class="detail-hero-section">
           <div class="detail-floating-poster-wrap">
             ${poster
               ? `<img class="detail-floating-poster" src="${poster}" alt="${escHtml(title)}">`
@@ -664,17 +631,49 @@ async function showDetailModal(tmdbId, mediaType, existingItem) {
             }
           </div>
 
-          <div class="detail-hero-actions">
-            <div class="detail-view-options">
-              <button type="button" class="detail-opt-btn active" id="btn-opt-overview" onclick="switchDetailTab('overview')">
-                <i data-lucide="align-left" class="icon-xs"></i>
-                <span>Konusu</span>
-              </button>
-              <button type="button" class="detail-opt-btn" id="btn-opt-cast" onclick="switchDetailTab('cast')">
-                <i data-lucide="users" class="icon-xs"></i>
-                <span>Oyuncular ${castList.length ? `(${castList.length})` : ''}</span>
-              </button>
+          <div class="detail-hero-info">
+            <div class="detail-banner-badges">
+              <span class="badge badge-${mediaType}">${mediaType === 'movie' ? 'Film' : 'Dizi'}</span>
+              ${year ? `<span class="detail-year-badge">${year}</span>` : ''}
+              ${statusTag ? `<span class="detail-status-badge ${isEnded ? 'ended' : ''}">${statusTag}</span>` : ''}
+              ${ratingVal ? `<span class="detail-tmdb-badge">★ ${ratingVal} TMDB</span>` : ''}
             </div>
+            <h2 class="detail-banner-title">${escHtml(title)}</h2>
+            <div class="detail-genre-tags">
+              ${genres.slice(0, 4).map(g => `<span class="detail-genre-pill">${escHtml(g)}</span>`).join('')}
+            </div>
+
+            <!-- Watch Providers (Platformlar) -->
+            ${providersList.length ? `
+              <div class="detail-providers-bar">
+                <span class="detail-providers-title">
+                  <i data-lucide="tv" class="icon-xxs"></i>
+                  <span>Platformlar:</span>
+                </span>
+                <div class="detail-providers-list">
+                  ${providersList.slice(0, 4).map(p => `
+                    <div class="detail-provider-badge" title="${escHtml(p.name)} (${p.type})">
+                      ${p.logo ? `<img src="${p.logo}" alt="${escHtml(p.name)}" class="provider-logo-mini">` : ''}
+                      <span class="provider-name-text">${escHtml(p.name)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Option Switcher (Konusu / Oyuncular) -->
+        <div class="detail-view-options-row">
+          <div class="detail-view-options">
+            <button type="button" class="detail-opt-btn active" id="btn-opt-overview" onclick="switchDetailTab('overview')">
+              <i data-lucide="align-left" class="icon-xs"></i>
+              <span>Konusu</span>
+            </button>
+            <button type="button" class="detail-opt-btn" id="btn-opt-cast" onclick="switchDetailTab('cast')">
+              <i data-lucide="users" class="icon-xs"></i>
+              <span>Oyuncular ${castList.length ? `(${castList.length})` : ''}</span>
+            </button>
           </div>
         </div>
 
