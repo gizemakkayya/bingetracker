@@ -109,7 +109,11 @@ export function mapGenres(genreIds, genreList) {
 // Helpers
 export function getPosterUrl(path, size = 'w500') {
   if (!path) return null;
-  return `https://image.tmdb.org/t/p/${size}${path}`;
+  if (typeof path === 'string' && (path.startsWith('http://') || path.startsWith('https://'))) {
+    return path;
+  }
+  const cleanPath = String(path).startsWith('/') ? String(path) : `/${path}`;
+  return `https://image.tmdb.org/t/p/${size}${cleanPath}`;
 }
 
 export function getTitle(item) {

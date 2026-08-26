@@ -1618,168 +1618,25 @@ let socialSubTab = 'feed';
 let activeFriendModalUser = null;
 let friendModalFilter = 'all';
 
-// Mock & Initial Social Database
-const INITIAL_SOCIAL_USERS = [
-  {
-    id: 'user_gizem',
-    username: 'gizemakkayya',
-    name: 'Gizem Akkayya',
-    avatar: null,
-    role: '⭐ Geliştirici & UI Designer',
-    bio: 'Dizi maratoncusu • Dark mode & cam tasarımlar aşığı 🎨',
-    stats: { movies: 98, series: 42, hours: 620, avgRating: 8.7 },
-    watchlist: [
-      { tmdb_id: 94605, media_type: 'tv', title: 'Arcane', poster_path: '/fqldf2t8ztc9aiwn396mlik9xhm.jpg', status: 'watched', rating: 10, current_season: 2, current_episode: 9, total_seasons: 2, total_episodes: 18, notes: 'Animasyon kalitesi ve müzikler tek kelimeyle kusursuz.', updated_at: '5 saat önce' },
-      { tmdb_id: 66732, media_type: 'tv', title: 'Stranger Things', poster_path: '/49WJfeN0moxb9IPfGn8AIqMGskD.jpg', status: 'watched', rating: 9, current_season: 4, current_episode: 9, total_seasons: 5, total_episodes: 42, notes: 'Nostaljik 80\'ler atmosferi harika yansıtılmış.', updated_at: '2 gün önce' },
-      { tmdb_id: 100088, media_type: 'tv', title: 'The Last of Us', poster_path: '/uKvVjHNqB5VmOrdxqAt2V7JtT.jpg', status: 'watching', rating: 9, current_season: 1, current_episode: 6, total_seasons: 2, total_episodes: 16, notes: 'Pedro Pascal ve Bella Ramsey harika bir ikili.', updated_at: '4 gün önce' },
-      { tmdb_id: 550, media_type: 'movie', title: 'Fight Club', poster_path: '/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg', status: 'watched', rating: 10, notes: 'Klasik başyapıt.', updated_at: '1 ay önce' },
-      { tmdb_id: 27205, media_type: 'movie', title: 'Inception', poster_path: '/o22eO111s9WkE2n7rQ8d6V4L.jpg', status: 'watchlist', notes: 'Hafta sonu tekrar izlenecek.', updated_at: '1 hafta önce' }
-    ]
-  },
-  {
-    id: 'user_emre',
-    username: 'emrecan',
-    name: 'Emre Can',
-    avatar: null,
-    role: '🎬 Sinema Eleştirmeni',
-    bio: 'Klasik Hollywood, Nolan & A24 yapımları takipçisi',
-    stats: { movies: 215, series: 14, hours: 380, avgRating: 8.3 },
-    watchlist: [
-      { tmdb_id: 872585, media_type: 'movie', title: 'Oppenheimer', poster_path: '/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg', status: 'watched', rating: 9, notes: 'Biyografi türünün zirve noktalarından biri.', updated_at: '6 saat önce' },
-      { tmdb_id: 244786, media_type: 'movie', title: 'Whiplash', poster_path: '/7fn624j5lj3xTme2SgiLCeuedmO.jpg', status: 'watched', rating: 10, notes: 'Ritim ve oyunculuk şöleni.', updated_at: '3 gün önce' },
-      { tmdb_id: 680, media_type: 'movie', title: 'Pulp Fiction', poster_path: '/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg', status: 'watched', rating: 9, notes: 'Tarantino dehası.', updated_at: '2 hafta önce' },
-      { tmdb_id: 496243, media_type: 'movie', title: 'Parasite', poster_path: '/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg', status: 'watched', rating: 10, notes: 'Sınıf çatışmasını anlatan en iyi film.', updated_at: '3 hafta önce' }
-    ]
-  },
-  {
-    id: 'user_selin',
-    username: 'selinyilmaz',
-    name: 'Selin Yılmaz',
-    avatar: null,
-    role: '🍿 Dizi Bağımlısı',
-    bio: 'Mini diziler & anime maratoncusu. Bir günde bir sezon bitiririm ✨',
-    stats: { movies: 65, series: 56, hours: 710, avgRating: 8.8 },
-    watchlist: [
-      { tmdb_id: 85937, media_type: 'tv', title: 'Chernobyl', poster_path: '/hlLXt2tOPT6RRnjiUmoxyG1LTFi.jpg', status: 'watched', rating: 10, current_season: 1, current_episode: 5, total_seasons: 1, total_episodes: 5, notes: 'Atmosfer gerilimi inanılmaz yüksek, 5 bölümde mükemmel anlatım.', updated_at: '1 gün önce' },
-      { tmdb_id: 87108, media_type: 'tv', title: 'The Queen\'s Gambit', poster_path: '/zU0htwkhNvBQdVSIKB9uf6hgMGW.jpg', status: 'watched', rating: 9, current_season: 1, current_episode: 7, total_seasons: 1, total_episodes: 7, notes: 'Satrancı bu kadar heyecanlı kılabilmek büyük başarı.', updated_at: '4 gün önce' },
-      { tmdb_id: 1429, media_type: 'tv', title: 'Attack on Titan', poster_path: '/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg', status: 'watching', rating: 10, current_season: 4, current_episode: 28, total_seasons: 4, total_episodes: 87, notes: 'Kurgusu akıl almaz seviyede derin.', updated_at: 'Dün' }
-    ]
-  },
-  {
-    id: 'user_canberk',
-    username: 'canberk',
-    name: 'Canberk Tekin',
-    avatar: null,
-    role: '🔍 Polisiye & Gerilim',
-    bio: 'David Fincher & Gerilim/Gizem türü aşığı',
-    stats: { movies: 112, series: 19, hours: 340, avgRating: 8.5 },
-    watchlist: [
-      { tmdb_id: 67744, media_type: 'tv', title: 'Mindhunter', poster_path: '/fbKE87mojpIETWepSbD5Qt741d7.jpg', status: 'watched', rating: 10, current_season: 2, current_episode: 9, total_seasons: 2, total_episodes: 19, notes: 'Psikolojik derinliği ve sorgulama sahneleri kusursuz.', updated_at: '2 gün önce' },
-      { tmdb_id: 807, media_type: 'movie', title: 'Se7en', poster_path: '/6yoghtyTpznpBik8EngEmJskVUO.jpg', status: 'watched', rating: 10, notes: 'Fincher klasiği, sonu unutulmaz.', updated_at: '5 gün önce' },
-      { tmdb_id: 1949, media_type: 'movie', title: 'Zodiac', poster_path: '/6Y0w42aGfA8q1bH4y4Jg.jpg', status: 'watched', rating: 9, notes: 'Ayrıntılara verilen özen mükemmel.', updated_at: '2 hafta önce' }
-    ]
-  },
-  {
-    id: 'user_melike',
-    username: 'melike',
-    name: 'Melike',
-    avatar: null,
-    role: '🌸 Dizi & Sinema Tutkunu',
-    bio: 'Favori dizilerim, maratonlarım ve izleme listem ✨ Keyifli seyirler!',
-    stats: { movies: 38, series: 22, hours: 260, avgRating: 9.1 },
-    watchlist: [
-      { tmdb_id: 110492, media_type: 'tv', title: 'Severance', poster_path: '/jG57fepU3Zl8cRj1dY1eC1Y0gH.jpg', status: 'watching', rating: 9, current_season: 1, current_episode: 7, total_seasons: 2, total_episodes: 18, notes: 'Bölüm finalleri nefes kesici, kesinlikle izlenmeli.', updated_at: 'Dün' },
-      { tmdb_id: 87108, media_type: 'tv', title: 'The Queen\'s Gambit', poster_path: '/zU0htwkhNvBQdVSIKB9uf6hgMGW.jpg', status: 'watched', rating: 10, current_season: 1, current_episode: 7, total_seasons: 1, total_episodes: 7, notes: 'Anya Taylor-Joy performansı büyüleyiciydi.', updated_at: '2 gün önce' },
-      { tmdb_id: 157336, media_type: 'movie', title: 'Interstellar', poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg', status: 'watched', rating: 10, notes: 'Her izleyişte aynı duyguyu yaşatıyor.', updated_at: 'Geçen hafta' },
-      { tmdb_id: 94605, media_type: 'tv', title: 'Arcane', poster_path: '/abf8tHznhSvl9B9KyCeoL0eh9pf.jpg', status: 'watched', rating: 10, current_season: 2, current_episode: 9, total_seasons: 2, total_episodes: 18, notes: 'Sanat tasarımı ve müzikler tek kelimeyle başyapıt.', updated_at: '2 hafta önce' },
-      { tmdb_id: 1396, media_type: 'tv', title: 'Breaking Bad', poster_path: '/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg', status: 'watched', rating: 10, notes: 'Tüm zamanların en iyi dizisi.', updated_at: 'Geçen ay' }
-    ]
-  }
-];
+// Mock & Initial Social Database (Boş: Sadece gerçek kayıtlı hesaplar gösterilir)
+const INITIAL_SOCIAL_USERS = [];
+const INITIAL_ACTIVITIES = [];
 
-const INITIAL_ACTIVITIES = [
-  {
-    id: 'act_0',
-    userId: 'user_melike',
-    actionType: 'COMPLETED_SERIES',
-    mediaType: 'tv',
-    tmdbId: 87108,
-    title: 'The Queen\'s Gambit',
-    posterPath: '/zU0htwkhNvBQdVSIKB9uf6hgMGW.jpg',
-    rating: 10,
-    detailText: 'tüm sezonu bitirdi ve ★ 10 puan verdi!',
-    note: 'Anya Taylor-Joy performansı büyüleyiciydi, tek nefeste bitti.',
-    timeAgo: '1 saat önce'
-  },
-  {
-    id: 'act_2',
-    userId: 'user_gizem',
-    actionType: 'WATCHING_EPISODE',
-    mediaType: 'tv',
-    tmdbId: 253412,
-    title: 'Lucky',
-    posterPath: '/9BAAyR7r1d4fF1z1y0pB9s8F5M.jpg',
-    rating: 8,
-    season: 1,
-    episode: 3,
-    detailText: '1. Sezon 3. Bölüm\'ü izledi.',
-    timeAgo: '3 saat önce'
-  },
-  {
-    id: 'act_3',
-    userId: 'user_emre',
-    actionType: 'RATED_MOVIE',
-    mediaType: 'movie',
-    tmdbId: 872585,
-    title: 'Oppenheimer',
-    posterPath: '/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
-    rating: 9,
-    detailText: 'filmine ★ 9 puan verdi.',
-    note: 'Biyografi türünün zirve noktalarından biri.',
-    timeAgo: '6 saat önce'
-  },
-  {
-    id: 'act_4',
-    userId: 'user_selin',
-    actionType: 'WATCHING_EPISODE',
-    mediaType: 'tv',
-    tmdbId: 1429,
-    title: 'Attack on Titan',
-    posterPath: '/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg',
-    rating: 10,
-    season: 4,
-    episode: 28,
-    detailText: '4. Sezon 28. Bölüm\'ü izledi.',
-    note: 'Kurgusu akıl almaz seviyede derin.',
-    timeAgo: 'Dün'
-  },
-  {
-    id: 'act_6',
-    userId: 'user_canberk',
-    actionType: 'COMPLETED_SERIES',
-    mediaType: 'tv',
-    tmdbId: 67744,
-    title: 'Mindhunter',
-    posterPath: '/fbKE87mojpIETWepSbD5Qt741d7.jpg',
-    rating: 10,
-    detailText: '2. Sezon\'u tamamladı.',
-    timeAgo: '2 gün önce'
-  }
-];
+const MOCK_USER_IDS = new Set(['user_ahmet', 'user_gizem', 'user_melike', 'user_emre', 'user_selin', 'user_canberk']);
 
 function getFollowingUserIds() {
   const saved = localStorage.getItem('binge_following_ids');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return new Set(parsed.filter(id => id !== 'user_ahmet'));
+      return new Set(parsed.filter(id => !MOCK_USER_IDS.has(id)));
     } catch (e) {}
   }
-  return new Set(['user_gizem', 'user_melike']);
+  return new Set();
 }
 
 function saveFollowingUserIds(set) {
-  set.delete('user_ahmet');
+  MOCK_USER_IDS.forEach(id => set.delete(id));
   localStorage.setItem('binge_following_ids', JSON.stringify(Array.from(set)));
 }
 
@@ -1788,7 +1645,7 @@ function getStoredSocialProfiles() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return parsed.filter(u => u.id !== 'user_ahmet' && u.username !== 'ahmetfuad');
+      return parsed.filter(u => !MOCK_USER_IDS.has(u.id) && u.id !== 'user_ahmet');
     } catch (e) {}
   }
   return [];
@@ -1802,7 +1659,7 @@ export function syncCurrentUserToSocial() {
   const ratedItems = watchlistItems.filter(i => (i.rating || 0) > 0);
   const avgRating = ratedItems.length 
     ? (ratedItems.reduce((acc, i) => acc + (i.rating || 0), 0) / ratedItems.length).toFixed(1)
-    : '8.8';
+    : '0.0';
   const totalMinutes = watchlistItems.reduce((acc, i) => acc + (i.runtime_minutes || 45), 0);
   const totalHours = Math.round(totalMinutes / 60);
 
@@ -1847,27 +1704,76 @@ export function syncCurrentUserToSocial() {
 
 async function fetchSupabaseSocialUsers() {
   try {
-    const { data: profiles, error } = await supabase.from('profiles').select('*');
-    if (!error && profiles && profiles.length) {
-      const stored = getStoredSocialProfiles();
-      profiles.forEach(p => {
-        if (!p.username) return;
-        const uname = p.username.toLowerCase();
-        const exists = stored.some(s => s.id === p.id || s.username.toLowerCase() === uname);
-        if (!exists) {
-          stored.push({
-            id: p.id,
-            username: uname,
-            name: p.username.charAt(0).toUpperCase() + p.username.slice(1),
-            avatar: p.avatar_url || null,
-            role: '⭐ BingeTracker Üyesi',
-            bio: 'Sinema ve dizi tutkunu 🍿',
-            stats: { movies: 14, series: 10, hours: 110, avgRating: 8.6 },
-            watchlist: []
-          });
-        }
-      });
-      localStorage.setItem('binge_registered_profiles', JSON.stringify(stored));
+    const { data: profiles, error: pError } = await supabase.from('profiles').select('*');
+    if (pError || !profiles || !profiles.length) return;
+
+    let watchMap = {};
+    try {
+      const { data: allWatchlists } = await supabase.from('watchlist').select('*');
+      if (allWatchlists) {
+        allWatchlists.forEach(item => {
+          if (!watchMap[item.user_id]) watchMap[item.user_id] = [];
+          watchMap[item.user_id].push(item);
+        });
+      }
+    } catch (e) {}
+
+    const stored = getStoredSocialProfiles();
+    profiles.forEach(p => {
+      if (!p.id) return;
+      const rawName = p.username || p.full_name || 'Kullanıcı';
+      const uname = rawName.toLowerCase().replace(/\s+/g, '');
+      const userWatchlist = watchMap[p.id] || [];
+      const movies = userWatchlist.filter(w => w.media_type === 'movie').length;
+      const series = userWatchlist.filter(w => w.media_type === 'tv').length;
+      const rated = userWatchlist.filter(w => (w.rating || 0) > 0);
+      const avgRating = rated.length 
+        ? parseFloat((rated.reduce((acc, w) => acc + (w.rating || 0), 0) / rated.length).toFixed(1))
+        : 0;
+      const totalHours = Math.round(userWatchlist.length * 1.5);
+
+      const userObj = {
+        id: p.id,
+        username: uname,
+        name: rawName.charAt(0).toUpperCase() + rawName.slice(1),
+        avatar: p.avatar_url || null,
+        role: '⭐ BingeTracker Üyesi',
+        bio: p.bio || 'Dizi & film maratoncusu 🍿',
+        stats: {
+          movies,
+          series,
+          hours: totalHours,
+          avgRating
+        },
+        watchlist: userWatchlist.map(w => ({
+          tmdb_id: w.tmdb_id,
+          media_type: w.media_type,
+          title: w.title,
+          poster_path: w.poster_path,
+          status: w.status,
+          rating: w.rating,
+          current_season: w.current_season,
+          current_episode: w.current_episode,
+          total_seasons: w.total_seasons,
+          total_episodes: w.total_episodes,
+          notes: w.notes,
+          updated_at: 'Son zamanlarda'
+        }))
+      };
+
+      const idx = stored.findIndex(s => s.id === p.id || s.username === uname);
+      if (idx !== -1) {
+        stored[idx] = { ...stored[idx], ...userObj };
+      } else {
+        stored.push(userObj);
+      }
+    });
+
+    localStorage.setItem('binge_registered_profiles', JSON.stringify(stored));
+    if (activeTab === 'social') {
+      if (socialSubTab === 'friends') renderSocialFriends();
+      else if (socialSubTab === 'discover') renderSocialDiscover();
+      else if (socialSubTab === 'feed') renderSocialSidebar();
     }
   } catch (err) {
     // Supabase optional sync
@@ -1876,7 +1782,7 @@ async function fetchSupabaseSocialUsers() {
 
 function getSocialUsers() {
   const registered = getStoredSocialProfiles();
-  const combined = [...INITIAL_SOCIAL_USERS];
+  const combined = [];
   
   registered.forEach(reg => {
     const existingIdx = combined.findIndex(c => c.id === reg.id || c.username.toLowerCase() === reg.username.toLowerCase());
@@ -1895,17 +1801,18 @@ function getUserActivities() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return [...parsed, ...INITIAL_ACTIVITIES];
+      return parsed.filter(a => !MOCK_USER_IDS.has(a.userId) && a.userId !== 'user_ahmet');
     } catch (e) {}
   }
-  return INITIAL_ACTIVITIES;
+  return [];
 }
 
 function logUserActivity(act) {
+  const uname = currentProfile?.username || currentUser?.user_metadata?.username || currentUser?.email?.split('@')[0] || 'Sen';
   const newAct = {
     id: 'act_' + Date.now(),
     userId: currentUser?.id || 'current_user',
-    userName: currentUser?.user_metadata?.username || currentUser?.email?.split('@')[0] || 'Sen',
+    userName: uname.charAt(0).toUpperCase() + uname.slice(1),
     isMe: true,
     timeAgo: 'Az önce',
     ...act
@@ -1913,7 +1820,10 @@ function logUserActivity(act) {
   const saved = localStorage.getItem('binge_social_activities');
   let list = [];
   if (saved) {
-    try { list = JSON.parse(saved); } catch (e) {}
+    try {
+      const parsed = JSON.parse(saved);
+      list = parsed.filter(a => !MOCK_USER_IDS.has(a.userId) && a.userId !== 'user_ahmet');
+    } catch (e) {}
   }
   list.unshift(newAct);
   localStorage.setItem('binge_social_activities', JSON.stringify(list.slice(0, 30)));
@@ -1963,7 +1873,7 @@ function renderSocialFeed() {
       <div class="social-empty-feed">
         <div class="empty-feed-icon"><i data-lucide="users" class="icon-xl"></i></div>
         <h3>Henüz Akışta Bir Aktivite Yok</h3>
-        <p>Arkadaşlarını takip ederek onların izledikleri film ve dizileri buradan canlı olarak takip edebilirsin.</p>
+        <p>Arkadaşlarını takip ederek veya içerikleri izlendi/izleniyor olarak işaretleyerek akışını hareketlendirebilirsin.</p>
         <button type="button" class="btn btn-primary btn-sm" onclick="switchSocialSubTab('discover')">
           <i data-lucide="user-plus" class="icon-xs"></i>
           <span>Arkadaş Keşfet</span>
@@ -2018,9 +1928,11 @@ function renderSocialFeed() {
         <div class="activity-card-body">
           <div class="activity-media-box" onclick="showDetailModal(${act.tmdbId}, '${act.mediaType}')">
             ${poster 
-              ? `<img src="${poster}" alt="${escHtml(act.title)}" class="activity-media-poster">` 
-              : `<div class="activity-media-poster-placeholder"><i data-lucide="${act.mediaType === 'movie' ? 'film' : 'tv'}" class="icon-md"></i></div>`
-            }
+              ? `<img src="${poster}" alt="${escHtml(act.title)}" class="activity-media-poster" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">` 
+              : ''}
+            <div class="activity-media-poster-placeholder" style="${poster ? 'display:none' : 'display:flex'}">
+              <i data-lucide="${act.mediaType === 'movie' ? 'film' : 'tv'}" class="icon-md"></i>
+            </div>
             <div class="activity-media-info">
               <div class="activity-media-title-row">
                 <h4 class="activity-media-title">${escHtml(act.title)}</h4>
@@ -2055,6 +1967,8 @@ function renderSocialSidebar() {
   const miniSuggest = document.getElementById('social-mini-suggest-list');
   const following = getFollowingUserIds();
   const allUsers = getSocialUsers();
+  const currentUserId = currentUser?.id;
+  const currentUsername = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
 
   if (miniFriends) {
     const followedUsers = allUsers.filter(u => following.has(u.id));
@@ -2468,9 +2382,11 @@ export function openFriendProfile(userId, filter = 'all') {
             <div class="friend-item-card">
               <div class="friend-item-poster-wrap" onclick="showDetailModal(${item.tmdb_id}, '${item.media_type}')">
                 ${poster 
-                  ? `<img src="${poster}" alt="${escHtml(item.title)}" class="friend-item-poster" loading="lazy">` 
-                  : `<div class="friend-item-poster-placeholder"><i data-lucide="${item.media_type === 'movie' ? 'film' : 'tv'}" class="icon-lg"></i></div>`
-                }
+                  ? `<img src="${poster}" alt="${escHtml(item.title)}" class="friend-item-poster" loading="lazy" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">` 
+                  : ''}
+                <div class="friend-item-poster-placeholder" style="${poster ? 'display:none' : 'display:flex'}">
+                  <i data-lucide="${item.media_type === 'movie' ? 'film' : 'tv'}" class="icon-lg"></i>
+                </div>
                 <span class="friend-item-badge badge-${item.media_type}">${item.media_type === 'movie' ? 'Film' : 'Dizi'}</span>
               </div>
 
