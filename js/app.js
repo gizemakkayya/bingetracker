@@ -1896,13 +1896,27 @@ function getStoredSocialProfiles() {
     } catch (e) {}
   }
 
-  // Ensure Buse profile exists in social registry
-  if (!list.some(u => u.id === 'user_buse' || u.username.toLowerCase() === 'buse')) {
+  // Check if real Buse exists in profiles
+  const hasRealBuse = list.some(u => u.id !== 'user_buse' && (u.username?.toLowerCase() === 'buse' || u.name?.toLowerCase() === 'buse'));
+  if (hasRealBuse) {
+    list = list.filter(u => u.id !== 'user_buse');
+  } else if (!list.some(u => u.id === 'user_buse' || u.username?.toLowerCase() === 'buse')) {
     list.push(BUSE_USER);
-    localStorage.setItem('binge_registered_profiles', JSON.stringify(list));
   }
 
-  return list;
+  // Final deduplication by username/name
+  const seen = new Set();
+  const deduplicated = [];
+  for (const item of list) {
+    const key = (item.username || item.name || '').toLowerCase().replace(/\s+/g, '');
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduplicated.push(item);
+    }
+  }
+
+  localStorage.setItem('binge_registered_profiles', JSON.stringify(deduplicated));
+  return deduplicated;
 }
 
 export function syncCurrentUserToSocial() {
@@ -2037,12 +2051,15 @@ async function fetchSupabaseSocialUsers() {
 function getSocialUsers() {
   const registered = getStoredSocialProfiles();
   const combined = [];
+  const seenKeys = new Set();
   
   registered.forEach(reg => {
-    const existingIdx = combined.findIndex(c => c.id === reg.id || c.username.toLowerCase() === reg.username.toLowerCase());
-    if (existingIdx !== -1) {
-      combined[existingIdx] = { ...combined[existingIdx], ...reg };
-    } else {
+    const regUname = (reg.username || '').toLowerCase().replace(/\s+/g, '');
+    const regName = (reg.name || '').toLowerCase().replace(/\s+/g, '');
+    const primaryKey = regUname || regName || reg.id;
+
+    if (!seenKeys.has(primaryKey)) {
+      seenKeys.add(primaryKey);
       combined.push(reg);
     }
   });
