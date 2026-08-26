@@ -233,11 +233,16 @@ function bindEvents() {
   // User menu
   document.getElementById('user-menu-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    document.getElementById('user-dropdown').classList.toggle('hidden');
+    document.getElementById('user-dropdown')?.classList.toggle('hidden');
+  });
+
+  document.getElementById('profile-nav-btn')?.addEventListener('click', () => {
+    document.getElementById('user-dropdown')?.classList.add('hidden');
+    showTab('profile');
   });
 
   const handleOutsideClose = (e) => {
-    if (!e.target.closest('#user-menu-btn')) {
+    if (!e.target.closest('#user-menu-btn') && !e.target.closest('#user-dropdown')) {
       document.getElementById('user-dropdown')?.classList.add('hidden');
     }
     if (!e.target.closest('.notification-menu-wrap')) {
@@ -248,14 +253,8 @@ function bindEvents() {
   document.addEventListener('touchend', handleOutsideClose, { passive: true });
 
   // Sign out
-  document.getElementById('signout-btn')?.addEventListener('click', async () => {
-    await signOut();
-    window.location.href = 'index.html';
-  });
-  document.getElementById('signout-btn-2')?.addEventListener('click', async () => {
-    await signOut();
-    window.location.href = 'index.html';
-  });
+  document.getElementById('signout-btn')?.addEventListener('click', handleSignOut);
+  document.getElementById('signout-btn-2')?.addEventListener('click', handleSignOut);
 
   // Modal close
   document.getElementById('detail-modal-backdrop')?.addEventListener('click', e => {
@@ -1843,6 +1842,24 @@ export function openNotificationProfile(userId, notifId) {
   }
 }
 window.openNotificationProfile = openNotificationProfile;
+
+export async function handleSignOut(e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  try {
+    await signOut();
+  } catch (err) {
+    console.warn('Sign out warning:', err);
+  } finally {
+    try {
+      localStorage.removeItem('sb-token');
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('binge_current_user');
+      sessionStorage.clear();
+    } catch (e) {}
+    window.location.href = 'index.html';
+  }
+}
+window.handleSignOut = handleSignOut;
 
 function saveFollowingUserIds(set) {
   MOCK_USER_IDS.forEach(id => set.delete(id));
