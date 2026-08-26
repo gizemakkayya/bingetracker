@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GizmesinkoTracker — Sinematik Dizi & Film Takipçisi</title>
+  <meta name="description" content="GizmesinkoTracker ile film ve dizi izleme listenizi oluşturun, takip edin ve istatistiklerinizi görün.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    document.documentElement.dataset.theme = 'dark';
+  </script>
+</head>
+<body>
+
+<div class="auth-page-centered">
+
+  <!-- ── Fullscreen Cinematic Poster Canvas ────────── -->
+  <div class="canvas-poster-mosaic" aria-hidden="true">
+    <div class="mosaic-col col-1">
+      <img src="https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg" alt="Interstellar">
+      <img src="https://image.tmdb.org/t/p/w500/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg" alt="Breaking Bad">
+      <img src="https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg" alt="Oppenheimer">
+      <img src="https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg" alt="The Dark Knight">
+      <img src="https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg" alt="Fight Club">
+    </div>
+    <div class="mosaic-col col-2">
+      <img src="https://image.tmdb.org/t/p/w500/czembW0Rk1Ke7raGE9Yq7IZVJ4Y.jpg" alt="Dune 2">
+      <img src="https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg" alt="Stranger Things">
+      <img src="https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg" alt="Pulp Fiction">
+      <img src="https://image.tmdb.org/t/p/w500/uKvVjK19yMNT2uk5agTYbBebKxU.jpg" alt="The Last of Us">
+      <img src="https://image.tmdb.org/t/p/w500/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg" alt="Spider-Man">
+    </div>
+    <div class="mosaic-col col-3">
+      <img src="https://image.tmdb.org/t/p/w500/fqldf2t8ztc9aiwn3k6mlX3tvRT.jpg" alt="Arcane">
+      <img src="https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg" alt="Avengers Infinity War">
+      <img src="https://image.tmdb.org/t/p/w500/2CAL2433ZeIihfX1Hb2139CX0pW.jpg" alt="Game of Thrones">
+      <img src="https://image.tmdb.org/t/p/w500/o07DJ0Q4904STWCuSA7GTeJMoYf.jpg" alt="Inception">
+      <img src="https://image.tmdb.org/t/p/w500/7jswOcUq989IMdQrqGQyM226lcu.jpg" alt="Cyberpunk">
+    </div>
+    <div class="mosaic-col col-4">
+      <img src="https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg" alt="The Godfather">
+      <img src="https://image.tmdb.org/t/p/w500/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg" alt="Blade Runner 2049">
+      <img src="https://image.tmdb.org/t/p/w500/fC2HDm5t0kHVRL9nl4773YGPALC.jpg" alt="Better Call Saul">
+      <img src="https://image.tmdb.org/t/p/w500/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg" alt="Shawshank Redemption">
+      <img src="https://image.tmdb.org/t/p/w500/ty8TGRuvJLPUmAR1H1nRIsgwvim.jpg" alt="Gladiator">
+    </div>
+    <div class="mosaic-col col-5">
+      <img src="https://image.tmdb.org/t/p/w500/iuFNMS8U5cb6xfzi51Dbkovj7vM.jpg" alt="Barbie">
+      <img src="https://image.tmdb.org/t/p/w500/kDp1vUBnMpe8ak4rjgl3cLELqjU.jpg" alt="Kung Fu Panda">
+      <img src="https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg" alt="Avatar">
+      <img src="https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg" alt="Interstellar">
+      <img src="https://image.tmdb.org/t/p/w500/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg" alt="Breaking Bad">
+    </div>
+  </div>
+
+  <!-- ── Ambient Vignette & Emerald Glow ───────────── -->
+  <div class="canvas-vignette"></div>
+  <div class="center-glow-orb"></div>
+
+  <!-- ── Top Header Bar ────────────────────────────── -->
+  <header class="auth-top-bar">
+    <div class="auth-logo-mark">
+      <div class="auth-logo-icon">
+        <i data-lucide="clapperboard" class="icon-md"></i>
+      </div>
+      <span class="auth-logo-text">GizmesinkoTracker</span>
+    </div>
+  </header>
+
+  <!-- ── Main Centered Viewport ────────────────────── -->
+  <main class="auth-center-wrap">
+
+    <!-- ── The Centered Glassmorphic Card ──────────── -->
+    <div class="auth-center-card">
+
+      <div class="auth-card-top">
+        <div class="auth-center-badge">
+          <i data-lucide="clapperboard" class="icon-xs"></i>
+          <span>Dizi & Film Takip Platformu</span>
+        </div>
+        <h1 class="auth-card-title" id="auth-heading">Sinema Dünyana Giriş Yap</h1>
+        <p class="auth-card-sub" id="auth-subheading">
+          Kaldığın sezon ve bölümü kaydet, izleme listeni oluştur ve toplam izleme süreni anında gör.
+        </p>
+
+        <!-- Eye-catching Feature Highlights -->
+        <div class="auth-features-bar">
+          <div class="feature-badge-pill">
+            <i data-lucide="tv" class="icon-xs"></i>
+            <span>Sezon & Bölüm Takibi</span>
+          </div>
+          <div class="feature-badge-pill">
+            <i data-lucide="film" class="icon-xs"></i>
+            <span>500.000+ Dizi & Film</span>
+          </div>
+          <div class="feature-badge-pill">
+            <i data-lucide="clock" class="icon-xs"></i>
+            <span>İzleme Süresi Analizi</span>
+          </div>
+          <div class="feature-badge-pill">
+            <i data-lucide="star" class="icon-xs"></i>
+            <span>Puanlama & Yorumlar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error / success messages -->
+      <div class="auth-error hidden" id="auth-error" role="alert">
+        <i data-lucide="alert-circle" class="icon-sm" style="flex-shrink:0"></i>
+        <span id="auth-error-text"></span>
+      </div>
+      <div class="auth-success hidden" id="auth-success" role="status">
+        <i data-lucide="check-circle-2" class="icon-sm" style="flex-shrink:0"></i>
+        <span id="auth-success-text"></span>
+      </div>
+
+      <!-- ── Login Form ────────────────────────────── -->
+      <form class="auth-form" id="login-form" novalidate>
+        <div class="input-group">
+          <label class="input-label" for="login-email">E-posta</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><i data-lucide="mail" class="icon-sm"></i></span>
+            <input class="form-input" type="email" id="login-email" name="email"
+              placeholder="ornek@mail.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="login-password">Şifre</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><i data-lucide="lock" class="icon-sm"></i></span>
+            <input class="form-input" type="password" id="login-password" name="password"
+              placeholder="••••••••" autocomplete="current-password" required>
+            <button type="button" class="password-toggle" onclick="togglePassword('login-password', this)"
+              aria-label="Şifreyi göster/gizle">
+              <i data-lucide="eye" class="icon-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg auth-submit-btn" type="submit" id="login-submit-btn">
+          <span class="btn-text">Giriş Yap</span>
+          <i data-lucide="arrow-right" class="icon-sm"></i>
+        </button>
+
+        <!-- Switch to Register Link -->
+        <div class="auth-switch-prompt">
+          <span>Henüz üye değil misiniz?</span>
+          <button type="button" class="auth-switch-btn" onclick="switchAuthMode('register')">Hemen Kayıt Olun</button>
+        </div>
+      </form>
+
+      <!-- ── Register Form ─────────────────────────── -->
+      <form class="auth-form hidden" id="register-form" novalidate>
+        <div class="input-group">
+          <label class="input-label" for="reg-username">Kullanıcı Adı</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><i data-lucide="user" class="icon-sm"></i></span>
+            <input class="form-input" type="text" id="reg-username" name="username"
+              placeholder="Kullanıcı adınız (isteğe bağlı)" autocomplete="username">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="reg-email">E-posta</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><i data-lucide="mail" class="icon-sm"></i></span>
+            <input class="form-input" type="email" id="reg-email" name="email"
+              placeholder="ornek@mail.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="reg-password">Şifre</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><i data-lucide="lock" class="icon-sm"></i></span>
+            <input class="form-input" type="password" id="reg-password" name="password"
+              placeholder="En az 6 karakter" autocomplete="new-password" minlength="6" required>
+            <button type="button" class="password-toggle" onclick="togglePassword('reg-password', this)"
+              aria-label="Şifreyi göster/gizle">
+              <i data-lucide="eye" class="icon-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="reg-password2">Şifre Tekrar</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><i data-lucide="lock" class="icon-sm"></i></span>
+            <input class="form-input" type="password" id="reg-password2" name="password2"
+              placeholder="Şifrenizi tekrarlayın" autocomplete="new-password" required>
+            <button type="button" class="password-toggle" onclick="togglePassword('reg-password2', this)"
+              aria-label="Şifreyi göster/gizle">
+              <i data-lucide="eye" class="icon-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg auth-submit-btn" id="register-btn">
+          <span class="btn-text">Hesap Oluştur</span>
+          <i data-lucide="sparkles" class="icon-sm"></i>
+        </button>
+
+        <!-- Switch to Login Link -->
+        <div class="auth-switch-prompt">
+          <span>Zaten bir hesabınız var mı?</span>
+          <button type="button" class="auth-switch-btn" onclick="switchAuthMode('login')">Giriş Yapın</button>
+        </div>
+      </form>
+
+    </div>
+  </main>
+
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" aria-live="polite"></div>
+
+<script type="module">
+  import { supabase } from './js/supabase.js';
+  import { signIn, signUp } from './js/auth.js';
+
+  // Redirect if already logged in
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) window.location.href = 'app.html';
+  });
+
+  // ── Switch between Login and Register modes ──────────
+  window.switchAuthMode = function(mode) {
+    const isLogin = mode === 'login';
+    document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+    document.getElementById('register-form').classList.toggle('hidden', isLogin);
+    document.getElementById('auth-heading').textContent = isLogin ? 'Sinema Dünyana Giriş Yap' : 'Ücretsiz Hesabını Oluştur';
+    document.getElementById('auth-subheading').textContent = isLogin
+      ? 'Kaldığın sezon ve bölümü kaydet, izleme listeni oluştur ve toplam izleme süreni anında gör.'
+      : 'Film ve dizi kütüphaneni oluşturup bölüm bölüm takip etmeye birkaç saniyede başla.';
+    clearMessages();
+    if (window.lucide) window.lucide.createIcons();
+  };
+  window.switchTab = window.switchAuthMode;
+
+  // ── Password toggle ─────────────────────────────────
+  window.togglePassword = function(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    btn.innerHTML = `<i data-lucide="${isText ? 'eye' : 'eye-off'}" class="icon-xs"></i>`;
+    if (window.lucide) window.lucide.createIcons({ root: btn });
+  };
+
+  // ── Error / Success display ─────────────────────────
+  function showError(msg) {
+    const el = document.getElementById('auth-error');
+    document.getElementById('auth-error-text').textContent = msg;
+    el.classList.remove('hidden');
+    document.getElementById('auth-success').classList.add('hidden');
+    if (window.lucide) window.lucide.createIcons();
+  }
+  function showSuccess(msg) {
+    const el = document.getElementById('auth-success');
+    document.getElementById('auth-success-text').textContent = msg;
+    el.classList.remove('hidden');
+    document.getElementById('auth-error').classList.add('hidden');
+    if (window.lucide) window.lucide.createIcons();
+  }
+  function clearMessages() {
+    document.getElementById('auth-error').classList.add('hidden');
+    document.getElementById('auth-success').classList.add('hidden');
+  }
+
+  // ── Login ────────────────────────────────────────────
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearMessages();
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) { showError('Lütfen tüm alanları doldurun.'); return; }
+
+    const btn = document.getElementById('login-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<div style="width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:auto"></div>';
+
+    try {
+      await signIn({ email, password });
+      window.location.href = 'app.html';
+    } catch (err) {
+      showError(translateError(err.message));
+      btn.disabled = false;
+      btn.innerHTML = '<span class="btn-text">Giriş Yap</span><i data-lucide="arrow-right" class="icon-sm"></i>';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  });
+
+  // ── Register ─────────────────────────────────────────
+  document.getElementById('register-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearMessages();
+    const username  = document.getElementById('reg-username').value.trim();
+    const email     = document.getElementById('reg-email').value.trim();
+    const password  = document.getElementById('reg-password').value;
+    const password2 = document.getElementById('reg-password2').value;
+
+    if (!username || !email || !password) { showError('Lütfen tüm alanları doldurun.'); return; }
+    if (username.length < 3) { showError('Kullanıcı adı en az 3 karakter olmalı.'); return; }
+    if (password.length < 6) { showError('Şifre en az 6 karakter olmalı.'); return; }
+    if (password !== password2) { showError('Şifreler eşleşmiyor.'); return; }
+
+    const btn = document.getElementById('register-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<div style="width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:auto"></div>';
+
+    try {
+      await signUp({ email, password, username });
+      showSuccess('Hesabınız oluşturuldu! E-postanızı kontrol edin ve doğrulama linkine tıklayın.');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="btn-text">Hesap Oluştur</span><i data-lucide="sparkles" class="icon-sm"></i>';
+      if (window.lucide) window.lucide.createIcons();
+    } catch (err) {
+      showError(translateError(err.message));
+      btn.disabled = false;
+      btn.innerHTML = '<span class="btn-text">Hesap Oluştur</span><i data-lucide="sparkles" class="icon-sm"></i>';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  });
+
+  function translateError(msg) {
+    if (msg.includes('Invalid login')) return 'E-posta veya şifre hatalı.';
+    if (msg.includes('User already registered')) return 'Bu e-posta zaten kayıtlı.';
+    if (msg.includes('Password should be')) return 'Şifre en az 6 karakter olmalı.';
+    if (msg.includes('Unable to validate')) return 'Geçersiz e-posta adresi.';
+    if (msg.includes('Email rate limit')) return 'Çok fazla deneme. Lütfen bekleyin.';
+    return msg;
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+</script>
+
+</body>
+</html>

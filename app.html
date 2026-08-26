@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GizmesinkoTracker — Listelerim</title>
+  <meta name="description" content="Film ve dizi izleme listenizi takip edin, puan verin, istatistiklerinizi görün.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css?v=5.0">
+  <link rel="stylesheet" href="css/main.css?v=5.0">
+  <link rel="stylesheet" href="css/app.css?v=5.0">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    (function() {
+      const saved = localStorage.getItem('binge-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = saved;
+    })();
+  </script>
+  <style>
+    /* ── Cinema Emerald Green Pill Nav (Tam Uyumlu Zümrüt Yeşili) ── */
+    .navbar-nav {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      padding: 0 !important;
+      background: transparent !important;
+      border: none !important;
+      margin-left: 1rem !important;
+    }
+    .navbar-nav .nav-link,
+    button.nav-link {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      padding: 0.45rem 1.1rem !important;
+      border-radius: 9999px !important;
+      border: 1.5px solid #222e40 !important;
+      background: #111722 !important;
+      background-color: #111722 !important;
+      font-size: 0.875rem !important;
+      font-weight: 500 !important;
+      color: #94a3b8 !important;
+      cursor: pointer !important;
+      outline: none !important;
+      white-space: nowrap !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      position: relative !important;
+    }
+    .navbar-nav .nav-link:hover,
+    button.nav-link:hover {
+      background: rgba(16, 185, 129, 0.12) !important;
+      background-color: rgba(16, 185, 129, 0.12) !important;
+      border-color: #10b981 !important;
+      color: #10b981 !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.2) !important;
+    }
+    .navbar-nav .nav-link.active,
+    button.nav-link.active {
+      background: #10b981 !important;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      background-color: #10b981 !important;
+      border-color: #10b981 !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45) !important;
+      transform: translateY(-1px) !important;
+    }
+    .navbar-nav .nav-link .nav-icon {
+      width: 16px !important;
+      height: 16px !important;
+      stroke-width: 2.2px !important;
+      display: inline-block !important;
+    }
+    .navbar-nav .nav-link:hover .nav-icon {
+      color: #10b981 !important;
+    }
+    .navbar-nav .nav-link.active .nav-icon {
+      color: #ffffff !important;
+    }
+    .navbar-nav .nav-count {
+      background: rgba(16, 185, 129, 0.2) !important;
+      color: #10b981 !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      padding: 1px 7px !important;
+      border-radius: 9999px !important;
+      border: 1px solid rgba(16, 185, 129, 0.4) !important;
+      line-height: 1.35 !important;
+      min-width: 18px !important;
+      text-align: center !important;
+      transition: all 0.2s ease !important;
+    }
+    .navbar-nav .nav-link:hover .nav-count {
+      background: rgba(16, 185, 129, 0.3) !important;
+      color: #ffffff !important;
+    }
+    .navbar-nav .nav-link.active .nav-count {
+      background: #ffffff !important;
+      color: #059669 !important;
+      border-color: #ffffff !important;
+      font-weight: 800 !important;
+    }
+  </style>
+</head>
+<body class="app-page">
+
+<!-- ── Navbar ──────────────────────────────────────── -->
+<nav class="navbar" role="navigation" aria-label="Ana navigasyon">
+
+  <a href="app.html" class="navbar-brand" aria-label="GizmesinkoTracker ana sayfa">
+    <div class="navbar-brand-icon" aria-hidden="true">
+      <i data-lucide="clapperboard" class="icon-md"></i>
+    </div>
+    GizmesinkoTracker
+  </a>
+
+  <div class="navbar-nav" role="tablist">
+    <button class="nav-link active" data-tab="discover" role="tab" aria-selected="true" aria-label="Keşfet">
+      <i data-lucide="compass" class="nav-icon"></i>
+      <span>Keşfet</span>
+    </button>
+    <button class="nav-link" data-tab="mylist" role="tab" aria-selected="false" aria-label="Listelerim">
+      <i data-lucide="bookmark" class="nav-icon"></i>
+      <span>Listelerim</span>
+      <span class="nav-count" id="watching-count" style="display:none">0</span>
+    </button>
+    <button class="nav-link" data-tab="stats" role="tab" aria-selected="false" aria-label="İstatistikler">
+      <i data-lucide="bar-chart-3" class="nav-icon"></i>
+      <span>İstatistikler</span>
+    </button>
+    <button class="nav-link" data-tab="profile" role="tab" aria-selected="false" aria-label="Profil">
+      <i data-lucide="user" class="nav-icon"></i>
+      <span>Profil</span>
+    </button>
+  </div>
+
+  <div class="navbar-right">
+    <!-- Navbar search -->
+    <div class="navbar-search">
+      <i data-lucide="search" class="navbar-search-icon"></i>
+      <input class="navbar-search-input" type="search" id="navbar-search"
+        placeholder="Film veya dizi ara…" aria-label="İçerik ara" autocomplete="off">
+    </div>
+
+    <!-- User dropdown -->
+    <div class="user-menu">
+      <!-- Dark mode toggle -->
+      <button id="theme-toggle" class="theme-toggle-btn" aria-label="Tema değiştir" title="Gece/Gündüz modu">
+        <i data-lucide="moon" class="icon-sm"></i>
+      </button>
+
+      <button class="user-avatar-btn" id="user-menu-btn" aria-haspopup="true" aria-expanded="false">
+        <div class="user-avatar" aria-hidden="true">
+          <span id="user-initials">–</span>
+        </div>
+        <span id="user-name-display"></span>
+        <span style="font-size:.7rem;color:var(--clr-text-muted)">▾</span>
+      </button>
+      <div class="dropdown-menu hidden" id="user-dropdown" role="menu">
+        <button class="dropdown-item" id="profile-nav-btn" data-tab="profile" role="menuitem">
+          <i data-lucide="user" class="icon-sm"></i>
+          <span>Profilim</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item danger" id="signout-btn" role="menuitem">
+          <i data-lucide="log-out" class="icon-sm"></i>
+          <span>Çıkış Yap</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Main content ─────────────────────────────────── -->
+<main>
+
+  <!-- ════════════════════════════════════════════════
+       TAB 1: DISCOVER / SEARCH
+  ════════════════════════════════════════════════ -->
+  <div data-page="discover">
+    <div class="page-content">
+      <!-- Search hero -->
+      <div class="search-hero">
+        <h2>Film ve Dizi Keşfet</h2>
+        <p>Milyonlarca içerik arasında arama yapın, listenize ekleyin.</p>
+
+        <div class="search-bar">
+          <input class="search-bar-input" type="search" id="discover-search"
+            placeholder="Örn: Breaking Bad, Inception, The Bear…"
+            aria-label="Film veya dizi ara" autocomplete="off">
+          <button class="btn btn-primary search-bar-btn" id="discover-search-btn" aria-label="Ara">
+            <i data-lucide="search" class="icon-xs" style="margin-right:4px"></i> Ara
+          </button>
+        </div>
+
+        <div class="search-filters" role="group" aria-label="Filtreler">
+          <button class="filter-pill active" data-filter="all">
+            <i data-lucide="layout-grid" class="icon-xs"></i> Tümü
+          </button>
+          <button class="filter-pill" data-filter="movie">
+            <i data-lucide="film" class="icon-xs"></i> Filmler
+          </button>
+          <button class="filter-pill" data-filter="tv">
+            <i data-lucide="tv" class="icon-xs"></i> Diziler
+          </button>
+        </div>
+      </div>
+
+      <!-- Genre tabs -->
+      <div class="genre-tabs-wrap" id="genre-tabs-wrap">
+        <button class="genre-scroll-btn left" id="genre-scroll-left" aria-label="Sola kaydır">
+          <i data-lucide="chevron-left" class="icon-sm"></i>
+        </button>
+        <div class="genre-tabs" id="genre-tabs" role="group" aria-label="Türler">
+          <button class="genre-tab active" data-genre="">Trendler</button>
+          <button class="genre-tab" data-genre="28">Aksiyon</button>
+          <button class="genre-tab" data-genre="12">Macera</button>
+          <button class="genre-tab" data-genre="35">Komedi</button>
+          <button class="genre-tab" data-genre="18">Dram</button>
+          <button class="genre-tab" data-genre="878">Bilim Kurgu</button>
+          <button class="genre-tab" data-genre="27">Korku</button>
+          <button class="genre-tab" data-genre="53">Gerilim</button>
+          <button class="genre-tab" data-genre="10749">Romantik</button>
+          <button class="genre-tab" data-genre="16">Animasyon</button>
+          <button class="genre-tab" data-genre="80">Suç</button>
+          <button class="genre-tab" data-genre="9648">Gizem</button>
+          <button class="genre-tab" data-genre="14">Fantastik</button>
+          <button class="genre-tab" data-genre="99">Belgesel</button>
+          <button class="genre-tab" data-genre="10751">Aile</button>
+          <button class="genre-tab" data-genre="36">Tarih</button>
+          <button class="genre-tab" data-genre="10752">Savaş</button>
+        </div>
+        <button class="genre-scroll-btn right" id="genre-scroll-right" aria-label="Sağa kaydır">
+          <i data-lucide="chevron-right" class="icon-sm"></i>
+        </button>
+      </div>
+
+      <!-- Results -->
+      <div class="section-header">
+        <h2 class="section-title" id="results-section-label">Trendler</h2>
+      </div>
+      <div class="results-grid" id="results-grid" role="list" aria-label="Arama sonuçları">
+        <!-- Skeleton cards rendered by JS -->
+      </div>
+      <div id="discover-load-more" style="text-align:center;padding:var(--sp-6) 0 var(--sp-8)"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       TAB 2: MY LIST
+  ════════════════════════════════════════════════ -->
+  <div data-page="mylist" style="display:none">
+    <div class="page-content">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">Listelerim</h1>
+          <p class="section-subtitle">İzleme geçmişinizi ve planlarınızı yönetin</p>
+        </div>
+      </div>
+
+      <!-- Status tabs -->
+      <div class="list-tabs" role="tablist" aria-label="Liste durumu">
+        <button class="list-tab" data-list-tab="watching" role="tab">
+          <i data-lucide="play-circle" class="icon-xs"></i>
+          <span>İzleniyor</span>
+          <span id="list-count-watching" class="nav-count" style="background:var(--clr-watching);display:inline-flex">0</span>
+        </button>
+        <button class="list-tab active" data-list-tab="watchlist" role="tab">
+          <i data-lucide="clock" class="icon-xs"></i>
+          <span>İzlenecek</span>
+          <span id="list-count-watchlist" class="nav-count">0</span>
+        </button>
+        <button class="list-tab" data-list-tab="watched" role="tab">
+          <i data-lucide="check-circle" class="icon-xs"></i>
+          <span>İzlendi</span>
+          <span id="list-count-watched" class="nav-count" style="background:var(--clr-watched);display:inline-flex">0</span>
+        </button>
+      </div>
+
+      <!-- Controls -->
+      <div class="list-controls">
+        <div class="list-sort">
+          <label for="list-sort-select" style="font-size:var(--text-sm)">Sırala:</label>
+          <select id="list-sort-select" aria-label="Sıralama seçeneği">
+            <option value="added_at">Eklenme Tarihi</option>
+            <option value="title">A–Z</option>
+            <option value="rating">Puana Göre</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div class="watchlist-grid" id="watchlist-grid" role="list" aria-label="Watchlist içerikleri">
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       TAB 3: STATS
+  ════════════════════════════════════════════════ -->
+  <div data-page="stats" style="display:none">
+    <div class="page-content">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">İstatistiklerim</h1>
+          <p class="section-subtitle">İzleme alışkanlıklarınızı keşfedin</p>
+        </div>
+      </div>
+
+      <!-- Overview stat cards -->
+      <div class="stats-overview" id="stats-overview">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Charts row -->
+      <div class="stats-charts">
+        <!-- Genre donut -->
+        <div class="chart-card">
+          <div class="chart-card-title">Tür Dağılımı</div>
+          <div class="chart-canvas-wrap">
+            <canvas id="genre-chart" width="220" height="220" aria-label="Tür dağılımı pasta grafiği"></canvas>
+          </div>
+          <div id="genre-legend" class="genre-legend"></div>
+        </div>
+
+        <!-- Monthly bar chart -->
+        <div class="chart-card">
+          <div class="chart-card-title">Aylık Aktivite (Son 6 Ay)</div>
+          <div class="chart-canvas-wrap">
+            <canvas id="monthly-chart" width="400" height="220" aria-label="Aylık izleme aktivitesi çubuk grafiği"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top rated -->
+      <div class="chart-card">
+        <div class="chart-card-title" style="display:flex;align-items:center;gap:6px">
+          <i data-lucide="star" class="icon-sm" style="color:var(--clr-star)"></i>
+          <span>En Yüksek Puanlılar</span>
+        </div>
+        <div id="top-rated-list" class="top-rated-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       TAB 4: PROFILE
+  ════════════════════════════════════════════════ -->
+  <div data-page="profile" style="display:none">
+    <div class="page-content">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">Profilim</h1>
+          <p class="section-subtitle">Hesap ayarlarınızı yönetin</p>
+        </div>
+      </div>
+
+      <div class="profile-layout">
+        <!-- Left card -->
+        <div class="profile-card">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar" id="profile-avatar-initials">–</div>
+          </div>
+          <div class="profile-name" id="profile-display-name">—</div>
+          <div class="profile-email" id="profile-email">—</div>
+
+          <button class="btn btn-danger btn-sm" id="signout-btn-2" style="width:100%;margin-top:var(--sp-4)">
+            <i data-lucide="log-out" class="icon-xs"></i>
+            <span>Çıkış Yap</span>
+          </button>
+
+          <div class="profile-since" id="profile-since"></div>
+        </div>
+
+        <!-- Right: settings -->
+        <div style="display:flex;flex-direction:column;gap:var(--sp-6)">
+          <!-- Profile info form -->
+          <div class="profile-form-card">
+            <div class="profile-form-title">Profil Bilgileri</div>
+            <div class="form-group">
+              <label class="form-label" for="profile-username-input">Kullanıcı Adı</label>
+              <input class="form-input" type="text" id="profile-username-input"
+                placeholder="Kullanıcı adınız" autocomplete="username">
+            </div>
+            <button class="btn btn-primary" id="profile-save-btn">
+              <i data-lucide="save" class="icon-xs"></i>
+              <span>Kaydet</span>
+            </button>
+          </div>
+
+          <!-- Password form -->
+          <div class="profile-form-card">
+            <div class="profile-form-title">Şifre Değiştir</div>
+            <div class="profile-form-row">
+              <div class="form-group">
+                <label class="form-label" for="profile-new-password">Yeni Şifre</label>
+                <input class="form-input" type="password" id="profile-new-password"
+                  placeholder="En az 6 karakter" autocomplete="new-password">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="profile-confirm-password">Şifre Tekrar</label>
+                <input class="form-input" type="password" id="profile-confirm-password"
+                  placeholder="Şifreyi tekrarlayın" autocomplete="new-password">
+              </div>
+            </div>
+            <button class="btn btn-secondary" id="profile-password-btn">
+              <i data-lucide="key" class="icon-xs"></i>
+              <span>Şifreyi Güncelle</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ════════════════════════════════════════════════
+     DETAIL / ADD / EDIT MODAL
+════════════════════════════════════════════════ -->
+<div class="modal-backdrop hidden" id="detail-modal-backdrop" role="dialog"
+  aria-modal="true" aria-labelledby="detail-modal-title">
+  <div class="modal detail-modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="detail-modal-title">Listeye Ekle</h2>
+      <button class="modal-close" id="detail-modal-close" aria-label="Kapat">✕</button>
+    </div>
+    <div class="modal-body" id="detail-modal-body">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "bingetracker-workspace",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build"
+  }
+}
