@@ -55,6 +55,7 @@ async function init() {
   // Load genres and watchlist asynchronously in background
   loadGenres();
   loadWatchlist();
+  fetchSupabaseSocialUsers();
 
   showTab('discover');
   loadTrending();
@@ -98,6 +99,7 @@ async function loadWatchlist() {
   try {
     watchlistItems = await fetchWatchlist(currentUser.id);
     updateNavCounts();
+    syncCurrentUserToSocial();
   } catch (e) {
     showToast('Liste yüklenemedi', 'error');
   }
@@ -1580,6 +1582,7 @@ async function saveProfile() {
     await updateProfile(currentUser.id, { username });
     currentProfile = { ...currentProfile, username };
     renderUserInfo();
+    syncCurrentUserToSocial();
     showToast('Profil güncellendi ✓', 'success');
   } catch (e) {
     showToast('Güncelleme başarısız: ' + e.message, 'error');
@@ -1692,10 +1695,39 @@ const INITIAL_SOCIAL_USERS = [
       { tmdb_id: 807, media_type: 'movie', title: 'Se7en', poster_path: '/6yoghtyTpznpBik8EngEmJskVUO.jpg', status: 'watched', rating: 10, notes: 'Fincher klasiği, sonu unutulmaz.', updated_at: '5 gün önce' },
       { tmdb_id: 1949, media_type: 'movie', title: 'Zodiac', poster_path: '/6Y0w42aGfA8q1bH4y4Jg.jpg', status: 'watched', rating: 9, notes: 'Ayrıntılara verilen özen mükemmel.', updated_at: '2 hafta önce' }
     ]
+  },
+  {
+    id: 'user_melike',
+    username: 'melike',
+    name: 'Melike',
+    avatar: null,
+    role: '🌸 Dizi & Sinema Tutkunu',
+    bio: 'Favori dizilerim, maratonlarım ve izleme listem ✨ Keyifli seyirler!',
+    stats: { movies: 38, series: 22, hours: 260, avgRating: 9.1 },
+    watchlist: [
+      { tmdb_id: 110492, media_type: 'tv', title: 'Severance', poster_path: '/jG57fepU3Zl8cRj1dY1eC1Y0gH.jpg', status: 'watching', rating: 9, current_season: 1, current_episode: 7, total_seasons: 2, total_episodes: 18, notes: 'Bölüm finalleri nefes kesici, kesinlikle izlenmeli.', updated_at: 'Dün' },
+      { tmdb_id: 87108, media_type: 'tv', title: 'The Queen\'s Gambit', poster_path: '/zU0htwkhNvBQdVSIKB9uf6hgMGW.jpg', status: 'watched', rating: 10, current_season: 1, current_episode: 7, total_seasons: 1, total_episodes: 7, notes: 'Anya Taylor-Joy performansı büyüleyiciydi.', updated_at: '2 gün önce' },
+      { tmdb_id: 157336, media_type: 'movie', title: 'Interstellar', poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg', status: 'watched', rating: 10, notes: 'Her izleyişte aynı duyguyu yaşatıyor.', updated_at: 'Geçen hafta' },
+      { tmdb_id: 94605, media_type: 'tv', title: 'Arcane', poster_path: '/abf8tHznhSvl9B9KyCeoL0eh9pf.jpg', status: 'watched', rating: 10, current_season: 2, current_episode: 9, total_seasons: 2, total_episodes: 18, notes: 'Sanat tasarımı ve müzikler tek kelimeyle başyapıt.', updated_at: '2 hafta önce' },
+      { tmdb_id: 1396, media_type: 'tv', title: 'Breaking Bad', poster_path: '/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg', status: 'watched', rating: 10, notes: 'Tüm zamanların en iyi dizisi.', updated_at: 'Geçen ay' }
+    ]
   }
 ];
 
 const INITIAL_ACTIVITIES = [
+  {
+    id: 'act_0',
+    userId: 'user_melike',
+    actionType: 'COMPLETED_SERIES',
+    mediaType: 'tv',
+    tmdbId: 87108,
+    title: 'The Queen\'s Gambit',
+    posterPath: '/zU0htwkhNvBQdVSIKB9uf6hgMGW.jpg',
+    rating: 10,
+    detailText: 'tüm sezonu bitirdi ve ★ 10 puan verdi!',
+    note: 'Anya Taylor-Joy performansı büyüleyiciydi, tek nefeste bitti.',
+    timeAgo: '1 saat önce'
+  },
   {
     id: 'act_1',
     userId: 'user_ahmet',
@@ -1783,15 +1815,115 @@ function getFollowingUserIds() {
   if (saved) {
     try { return new Set(JSON.parse(saved)); } catch (e) {}
   }
-  return new Set(['user_ahmet', 'user_gizem']);
+  return new Set(['user_ahmet', 'user_gizem', 'user_melike']);
 }
 
 function saveFollowingUserIds(set) {
   localStorage.setItem('binge_following_ids', JSON.stringify(Array.from(set)));
 }
 
+function getStoredSocialProfiles() {
+  const saved = localStorage.getItem('binge_registered_profiles');
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) {}
+  }
+  return [];
+}
+
+export function syncCurrentUserToSocial() {
+  if (!currentUser) return;
+  const username = currentProfile?.username || currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'Kullanıcı';
+  const myMovies = watchlistItems.filter(i => i.media_type === 'movie').length;
+  const mySeries = watchlistItems.filter(i => i.media_type === 'tv').length;
+  const ratedItems = watchlistItems.filter(i => (i.rating || 0) > 0);
+  const avgRating = ratedItems.length 
+    ? (ratedItems.reduce((acc, i) => acc + (i.rating || 0), 0) / ratedItems.length).toFixed(1)
+    : '8.8';
+  const totalMinutes = watchlistItems.reduce((acc, i) => acc + (i.runtime_minutes || 45), 0);
+  const totalHours = Math.round(totalMinutes / 60);
+
+  const mySocialObj = {
+    id: currentUser.id || 'current_user',
+    username: username.toLowerCase().replace(/\s+/g, ''),
+    name: username.charAt(0).toUpperCase() + username.slice(1),
+    avatar: currentProfile?.avatar_url || null,
+    role: '✨ BingeTracker Üyesi',
+    bio: currentProfile?.bio || 'Dizi & film maratoncusu 🎬',
+    stats: {
+      movies: myMovies,
+      series: mySeries,
+      hours: totalHours,
+      avgRating: parseFloat(avgRating)
+    },
+    watchlist: watchlistItems.map(w => ({
+      tmdb_id: w.tmdb_id,
+      media_type: w.media_type,
+      title: w.title,
+      poster_path: w.poster_path,
+      status: w.status,
+      rating: w.rating,
+      current_season: w.current_season,
+      current_episode: w.current_episode,
+      total_seasons: w.total_seasons,
+      total_episodes: w.total_episodes,
+      notes: w.notes,
+      updated_at: 'Son zamanlarda'
+    }))
+  };
+
+  const stored = getStoredSocialProfiles();
+  const idx = stored.findIndex(u => u.id === mySocialObj.id || u.username.toLowerCase() === mySocialObj.username.toLowerCase());
+  if (idx !== -1) {
+    stored[idx] = mySocialObj;
+  } else {
+    stored.push(mySocialObj);
+  }
+  localStorage.setItem('binge_registered_profiles', JSON.stringify(stored));
+}
+
+async function fetchSupabaseSocialUsers() {
+  try {
+    const { data: profiles, error } = await supabase.from('profiles').select('*');
+    if (!error && profiles && profiles.length) {
+      const stored = getStoredSocialProfiles();
+      profiles.forEach(p => {
+        if (!p.username) return;
+        const uname = p.username.toLowerCase();
+        const exists = stored.some(s => s.id === p.id || s.username.toLowerCase() === uname);
+        if (!exists) {
+          stored.push({
+            id: p.id,
+            username: uname,
+            name: p.username.charAt(0).toUpperCase() + p.username.slice(1),
+            avatar: p.avatar_url || null,
+            role: '⭐ BingeTracker Üyesi',
+            bio: 'Sinema ve dizi tutkunu 🍿',
+            stats: { movies: 14, series: 10, hours: 110, avgRating: 8.6 },
+            watchlist: []
+          });
+        }
+      });
+      localStorage.setItem('binge_registered_profiles', JSON.stringify(stored));
+    }
+  } catch (err) {
+    // Supabase optional sync
+  }
+}
+
 function getSocialUsers() {
-  return INITIAL_SOCIAL_USERS;
+  const registered = getStoredSocialProfiles();
+  const combined = [...INITIAL_SOCIAL_USERS];
+  
+  registered.forEach(reg => {
+    const existingIdx = combined.findIndex(c => c.id === reg.id || c.username.toLowerCase() === reg.username.toLowerCase());
+    if (existingIdx !== -1) {
+      combined[existingIdx] = { ...combined[existingIdx], ...reg };
+    } else {
+      combined.push(reg);
+    }
+  });
+
+  return combined;
 }
 
 function getUserActivities() {
@@ -1827,6 +1959,8 @@ function logUserActivity(act) {
 }
 
 export function renderSocialTab() {
+  syncCurrentUserToSocial();
+  fetchSupabaseSocialUsers();
   const following = getFollowingUserIds();
   const countEl = document.getElementById('social-friends-count');
   if (countEl) countEl.textContent = following.size;
@@ -2134,10 +2268,15 @@ function renderSocialDiscover(query = '') {
     return;
   }
 
+  const currentUserId = currentUser?.id;
+  const currentUsername = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
+
   grid.innerHTML = results.map(u => {
+    const isMe = u.id === currentUserId || (currentUsername && u.username.toLowerCase() === currentUsername);
     const isFollowing = following.has(u.id);
+
     return `
-      <div class="friend-card discover-card">
+      <div class="friend-card discover-card ${isMe ? 'my-own-profile-card' : ''}">
         <div class="friend-card-top">
           <div class="friend-avatar-row" onclick="openFriendProfile('${u.id}')">
             <div class="friend-card-avatar-wrap">
@@ -2147,16 +2286,26 @@ function renderSocialDiscover(query = '') {
               }
             </div>
             <div class="friend-card-name-block">
-              <h4 class="friend-card-name">${escHtml(u.name)}</h4>
+              <div style="display:flex;align-items:center;gap:6px">
+                <h4 class="friend-card-name">${escHtml(u.name)}</h4>
+                ${isMe ? `<span class="badge badge-watching" style="font-size:9px">SEN</span>` : ''}
+              </div>
               <span class="friend-card-handle">@${u.username}</span>
               ${u.role ? `<span class="friend-card-badge">${u.role}</span>` : ''}
             </div>
           </div>
           
-          <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-xs" onclick="toggleFollowUser('${u.id}')">
-            <i data-lucide="${isFollowing ? 'check' : 'user-plus'}" class="icon-xxs"></i>
-            <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
-          </button>
+          ${isMe ? `
+            <button type="button" class="btn btn-secondary btn-xs" onclick="showTab('profile')">
+              <i data-lucide="user" class="icon-xxs"></i>
+              <span>Profilim</span>
+            </button>
+          ` : `
+            <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-xs" onclick="toggleFollowUser('${u.id}')">
+              <i data-lucide="${isFollowing ? 'check' : 'user-plus'}" class="icon-xxs"></i>
+              <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
+            </button>
+          `}
         </div>
 
         <p class="friend-card-bio">${escHtml(u.bio)}</p>
@@ -2170,7 +2319,7 @@ function renderSocialDiscover(query = '') {
 
         <button type="button" class="btn btn-secondary friend-view-list-btn" onclick="openFriendProfile('${u.id}')">
           <i data-lucide="eye" class="icon-xs"></i>
-          <span>Profili & Listeyi İncele</span>
+          <span>${isMe ? 'Kendi Profilini & Listeni Gör' : 'Profili & Listeyi İncele'}</span>
         </button>
       </div>
     `;
@@ -2230,6 +2379,10 @@ export function openFriendProfile(userId, filter = 'all') {
   const watchedCount = allItems.filter(i => i.status === 'watched').length;
   const watchlistCount = allItems.filter(i => i.status === 'watchlist').length;
 
+  const currentUserId = currentUser?.id;
+  const currentUsername = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
+  const isMe = user.id === currentUserId || (currentUsername && user.username.toLowerCase() === currentUsername);
+
   bodyEl.innerHTML = `
     <!-- Modal Hero Banner -->
     <div class="friend-modal-banner">
@@ -2253,15 +2406,25 @@ export function openFriendProfile(userId, filter = 'all') {
         <div class="friend-hero-details">
           <div class="friend-hero-top-row">
             <div>
-              <h2 class="friend-hero-name" id="friend-modal-name">${escHtml(user.name)}</h2>
+              <div style="display:flex;align-items:center;gap:8px">
+                <h2 class="friend-hero-name" id="friend-modal-name">${escHtml(user.name)}</h2>
+                ${isMe ? `<span class="badge badge-watching" style="font-size:10px">SENİN PROFİLİN</span>` : ''}
+              </div>
               <span class="friend-hero-handle">@${user.username}</span>
               ${user.role ? `<span class="friend-card-badge">${user.role}</span>` : ''}
             </div>
 
-            <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-sm" onclick="toggleFollowUser('${user.id}')">
-              <i data-lucide="${isFollowing ? 'user-check' : 'user-plus'}" class="icon-xs"></i>
-              <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
-            </button>
+            ${isMe ? `
+              <button type="button" class="btn btn-secondary btn-sm" onclick="closeFriendModal(); showTab('profile')">
+                <i data-lucide="edit-3" class="icon-xs"></i>
+                <span>Profili Düzenle</span>
+              </button>
+            ` : `
+              <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-sm" onclick="toggleFollowUser('${user.id}')">
+                <i data-lucide="${isFollowing ? 'user-check' : 'user-plus'}" class="icon-xs"></i>
+                <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
+              </button>
+            `}
           </div>
 
           <p class="friend-hero-bio">${escHtml(user.bio)}</p>
