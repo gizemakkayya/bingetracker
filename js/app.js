@@ -1629,7 +1629,7 @@ const INITIAL_SOCIAL_USERS = [
     bio: 'Dizi maratoncusu • Dark mode & cam tasarımlar aşığı 🎨',
     stats: { movies: 98, series: 42, hours: 620, avgRating: 8.7 },
     watchlist: [
-      { tmdb_id: 94605, media_type: 'tv', title: 'Arcane', poster_path: '/abf8tHznhSvl9B9KyCeoL0eh9pf.jpg', status: 'watched', rating: 10, current_season: 2, current_episode: 9, total_seasons: 2, total_episodes: 18, notes: 'Animasyon kalitesi ve müzikler tek kelimeyle kusursuz.', updated_at: '5 saat önce' },
+      { tmdb_id: 94605, media_type: 'tv', title: 'Arcane', poster_path: '/fqldf2t8ztc9aiwn396mlik9xhm.jpg', status: 'watched', rating: 10, current_season: 2, current_episode: 9, total_seasons: 2, total_episodes: 18, notes: 'Animasyon kalitesi ve müzikler tek kelimeyle kusursuz.', updated_at: '5 saat önce' },
       { tmdb_id: 66732, media_type: 'tv', title: 'Stranger Things', poster_path: '/49WJfeN0moxb9IPfGn8AIqMGskD.jpg', status: 'watched', rating: 9, current_season: 4, current_episode: 9, total_seasons: 5, total_episodes: 42, notes: 'Nostaljik 80\'ler atmosferi harika yansıtılmış.', updated_at: '2 gün önce' },
       { tmdb_id: 100088, media_type: 'tv', title: 'The Last of Us', poster_path: '/uKvVjHNqB5VmOrdxqAt2V7JtT.jpg', status: 'watching', rating: 9, current_season: 1, current_episode: 6, total_seasons: 2, total_episodes: 16, notes: 'Pedro Pascal ve Bella Ramsey harika bir ikili.', updated_at: '4 gün önce' },
       { tmdb_id: 550, media_type: 'movie', title: 'Fight Club', poster_path: '/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg', status: 'watched', rating: 10, notes: 'Klasik başyapıt.', updated_at: '1 ay önce' },
@@ -2155,8 +2155,8 @@ function renderSocialFriends() {
               ${u.role ? `<span class="friend-card-badge">${u.role}</span>` : ''}
             </div>
           </div>
-          <button type="button" class="btn btn-secondary btn-xs btn-unfollow" onclick="toggleFollowUser('${u.id}')" title="Takipten Çık">
-            <i data-lucide="user-check" class="icon-xxs"></i>
+          <button type="button" class="btn-follow-pill following" onclick="toggleFollowUser('${u.id}')" title="Takipten Çık">
+            <i data-lucide="check" class="icon-xxs"></i>
             <span>Takip Ediliyor</span>
           </button>
         </div>
@@ -2173,7 +2173,12 @@ function renderSocialFriends() {
         <!-- Last watched preview -->
         ${lastItem ? `
           <div class="friend-last-watched-box" onclick="openFriendProfile('${u.id}')">
-            ${poster ? `<img src="${poster}" class="f-last-poster" alt="${escHtml(lastItem.title)}">` : ''}
+            ${poster 
+              ? `<img src="${poster}" class="f-last-poster" alt="${escHtml(lastItem.title)}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">` 
+              : ''}
+            <div class="f-last-poster-fallback" style="${poster ? 'display:none' : 'display:flex'}">
+              <i data-lucide="${lastItem.media_type === 'tv' ? 'tv' : 'film'}" class="icon-xs"></i>
+            </div>
             <div class="f-last-info">
               <div class="f-last-label">Son Hareket (${lastItem.updated_at})</div>
               <div class="f-last-title">${escHtml(lastItem.title)}</div>
@@ -2260,12 +2265,12 @@ function renderSocialDiscover(query = '') {
           </div>
           
           ${isMe ? `
-            <button type="button" class="btn btn-secondary btn-xs" onclick="showTab('profile')">
+            <button type="button" class="btn-follow-pill me" onclick="showTab('profile')">
               <i data-lucide="user" class="icon-xxs"></i>
               <span>Profilim</span>
             </button>
           ` : `
-            <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-xs" onclick="toggleFollowUser('${u.id}')">
+            <button type="button" class="btn-follow-pill ${isFollowing ? 'following' : 'not-following'}" onclick="toggleFollowUser('${u.id}')">
               <i data-lucide="${isFollowing ? 'check' : 'user-plus'}" class="icon-xxs"></i>
               <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
             </button>
