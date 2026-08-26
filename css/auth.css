@@ -175,32 +175,32 @@ form.hidden,
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 440px;
-  background: rgba(10, 16, 13, 0.68);
+  max-width: 360px;
+  background: rgba(6, 12, 9, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 24px;
-  padding: 32px 30px 28px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75),
-              0 0 35px rgba(16, 185, 129, 0.08),
+  border-radius: 22px;
+  padding: 24px 22px 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75),
+              0 0 30px rgba(16, 185, 129, 0.08),
               inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-card-top {
   text-align: center;
-  margin-bottom: var(--sp-4);
+  margin-bottom: var(--sp-3);
 }
 .auth-center-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 5px;
+  padding: 3px 10px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-full);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: var(--sp-2);
@@ -213,17 +213,17 @@ form.hidden,
 
 .auth-card-title {
   font-family: 'Plus Jakarta Sans', var(--font-sans);
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #fff;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .auth-card-sub {
-  font-size: var(--text-xs);
+  font-size: 11.5px;
   color: rgba(255, 255, 255, 0.72);
-  line-height: 1.45;
+  line-height: 1.4;
   margin-bottom: var(--sp-2);
 }
 
@@ -232,7 +232,7 @@ form.hidden,
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   margin-top: var(--sp-2);
   margin-bottom: var(--sp-1);
 }
@@ -240,12 +240,12 @@ form.hidden,
 .feature-badge-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
+  gap: 4px;
+  padding: 3px 8px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-full);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(8px);
@@ -266,14 +266,14 @@ form.hidden,
   flex-direction: column;
 }
 .input-group {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 .input-label {
   display: block;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.78);
-  margin-bottom: 8px;
+  margin-bottom: 5px;
   letter-spacing: 0.02em;
 }
 .input-field-wrap {
@@ -283,8 +283,8 @@ form.hidden,
 }
 .input-icon {
   position: absolute;
-  left: 18px;
-  color: rgba(255, 255, 255, 0.42);
+  left: 14px;
+  color: rgba(255, 255, 255, 0.45);
   pointer-events: none;
   z-index: 2;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -294,14 +294,14 @@ form.hidden,
 }
 .input-field-wrap .form-input {
   width: 100%;
-  height: 48px;
-  padding-left: 50px !important;
-  padding-right: 50px !important;
-  font-size: 14px;
+  height: 42px;
+  padding-left: 42px !important;
+  padding-right: 42px !important;
+  font-size: 13px;
   font-weight: 500;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1.5px solid rgba(255, 255, 255, 0.14);
-  background: rgba(6, 12, 9, 0.65);
+  background: rgba(4, 8, 6, 0.55);
   color: #fff;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(8px);
@@ -309,15 +309,15 @@ form.hidden,
 }
 .input-field-wrap .form-input::placeholder {
   color: rgba(255, 255, 255, 0.35);
-  font-size: 13.5px;
+  font-size: 12.5px;
 }
 .input-field-wrap .form-input:hover {
-  background: rgba(10, 18, 14, 0.78);
+  background: rgba(8, 14, 11, 0.7);
   border-color: rgba(255, 255, 255, 0.25);
 }
 .input-field-wrap .form-input:focus {
   border-color: #10b981;
-  background: rgba(6, 12, 9, 0.88);
+  background: rgba(4, 8, 6, 0.85);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25), 0 4px 16px rgba(0, 0, 0, 0.4);
   outline: none;
 }
@@ -328,16 +328,16 @@ form.hidden,
 
 .password-toggle {
   position: absolute;
-  right: 14px;
+  right: 10px;
   z-index: 2;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   color: rgba(255, 255, 255, 0.45);
   padding: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -353,11 +353,11 @@ form.hidden,
 /* ── Submit Action Button ──────────────────────────── */
 .auth-submit-btn {
   width: 100%;
-  height: 48px;
+  height: 42px;
   margin-top: 4px;
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 700;
-  border-radius: 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -365,7 +365,7 @@ form.hidden,
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
@@ -380,9 +380,9 @@ form.hidden,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: var(--sp-4);
-  font-size: var(--text-xs);
+  gap: 5px;
+  margin-top: 12px;
+  font-size: 11.5px;
   color: rgba(255, 255, 255, 0.6);
 }
 .auth-switch-btn {
@@ -391,7 +391,7 @@ form.hidden,
   color: #34d399;
   font-weight: 600;
   cursor: pointer;
-  font-size: var(--text-xs);
+  font-size: 11.5px;
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: color 0.15s ease;
@@ -407,13 +407,13 @@ form.hidden,
   color: #fca5a5;
   border: 1px solid rgba(239, 68, 68, 0.4);
   border-radius: var(--radius-lg);
-  padding: var(--sp-3) var(--sp-4);
-  font-size: var(--text-sm);
+  padding: 8px 12px;
+  font-size: 12px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
+  gap: 8px;
+  margin-bottom: 12px;
   animation: fadeIn 0.2s ease;
 }
 .auth-error.hidden { display: none; }
@@ -423,123 +423,117 @@ form.hidden,
   color: #6ee7b7;
   border: 1px solid rgba(16, 185, 129, 0.4);
   border-radius: var(--radius-lg);
-  padding: var(--sp-3) var(--sp-4);
-  font-size: var(--text-sm);
+  padding: 8px 12px;
+  font-size: 12px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
+  gap: 8px;
+  margin-bottom: 12px;
   animation: fadeIn 0.2s ease;
 }
 .auth-success.hidden { display: none; }
 
-/* ── Responsive ────────────────────────────────────── */
-@media (max-width: 480px) {
+/* ── Responsive Mobile & Tablet (Ultra-Compact Box) ────────────── */
+@media (max-width: 768px) {
   .canvas-poster-mosaic {
     gap: 12px;
     transform: rotate(-3deg) scale(1.06);
     opacity: 0.95;
-    top: -60px;
-    bottom: -60px;
-    left: -30px;
-    right: -30px;
+    top: -50px;
+    bottom: -50px;
+    left: -20px;
+    right: -20px;
   }
   .mosaic-col {
     gap: 12px;
   }
   .mosaic-col img {
-    width: 130px;
+    width: 125px;
     border-radius: 12px;
   }
   .auth-top-bar {
-    padding: var(--sp-2) var(--sp-4);
+    padding: 8px 14px;
   }
   .auth-logo-mark {
-    font-size: 1.1rem;
-    gap: 8px;
+    font-size: 1rem;
+    gap: 6px;
   }
   .auth-logo-icon {
-    width: 32px;
-    height: 32px;
-  }
-  .auth-center-wrap {
-    padding: 4px 14px 14px;
-  }
-  .auth-center-card {
-    max-width: 310px;
-    padding: 16px 16px 14px;
-    border-radius: 18px;
-    background: rgba(6, 12, 9, 0.50);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7),
-                0 0 20px rgba(16, 185, 129, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-  }
-  .auth-card-top {
-    margin-bottom: 10px;
-  }
-  .auth-center-badge {
-    margin-bottom: 3px;
-    padding: 2px 8px;
-    font-size: 9.5px;
-  }
-  .auth-card-title {
-    font-size: 1.12rem;
-    margin-bottom: 2px;
-  }
-  .auth-card-sub {
-    font-size: 10.5px;
-    margin-bottom: 4px;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .auth-features-bar {
-    display: none; /* Hide heavy feature badges on small mobile screens to keep box compact and show posters */
-  }
-  .input-group {
-    margin-bottom: 9px;
-  }
-  .input-label {
-    font-size: 11px;
-    margin-bottom: 3px;
-  }
-  .input-field-wrap .form-input {
-    height: 40px;
-    font-size: 12.5px;
-    padding-left: 38px !important;
-    padding-right: 38px !important;
-    border-radius: 11px;
-    background: rgba(4, 8, 6, 0.55);
-  }
-  .input-icon {
-    left: 12px;
-  }
-  .input-icon i {
-    width: 15px;
-    height: 15px;
-  }
-  .password-toggle {
-    right: 8px;
     width: 28px;
     height: 28px;
   }
+  .auth-center-wrap {
+    padding: 4px 10px 10px;
+  }
+  .auth-center-card {
+    max-width: 265px !important;
+    padding: 14px 14px 12px !important;
+    border-radius: 16px !important;
+    background: rgba(4, 8, 6, 0.45) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.75),
+                0 0 20px rgba(16, 185, 129, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  }
+  .auth-card-top {
+    margin-bottom: 8px !important;
+  }
+  .auth-center-badge {
+    margin-bottom: 2px !important;
+    padding: 2px 7px !important;
+    font-size: 9px !important;
+  }
+  .auth-card-title {
+    font-size: 1.05rem !important;
+    margin-bottom: 2px !important;
+  }
+  .auth-card-sub {
+    display: none !important; /* Hide to keep box short and let posters shine */
+  }
+  .auth-features-bar {
+    display: none !important; /* Hide badges on mobile to keep box tiny */
+  }
+  .input-group {
+    margin-bottom: 7px !important;
+  }
+  .input-label {
+    font-size: 10.5px !important;
+    margin-bottom: 2px !important;
+  }
+  .input-field-wrap .form-input {
+    height: 35px !important;
+    font-size: 12px !important;
+    padding-left: 34px !important;
+    padding-right: 34px !important;
+    border-radius: 10px !important;
+    background: rgba(2, 6, 4, 0.5) !important;
+  }
+  .input-icon {
+    left: 10px !important;
+  }
+  .input-icon i {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  .password-toggle {
+    right: 6px !important;
+    width: 24px !important;
+    height: 24px !important;
+  }
   .auth-submit-btn {
-    height: 40px;
-    font-size: 13px;
-    margin-top: 2px;
-    border-radius: 11px;
+    height: 36px !important;
+    font-size: 12.5px !important;
+    margin-top: 2px !important;
+    border-radius: 10px !important;
   }
   .auth-switch-prompt {
-    margin-top: 10px;
-    font-size: 11px;
+    margin-top: 8px !important;
+    font-size: 10.5px !important;
   }
   .auth-switch-btn {
-    font-size: 11px;
+    font-size: 10.5px !important;
   }
 }
