@@ -56,6 +56,7 @@ async function init() {
   loadGenres();
   loadWatchlist();
   fetchSupabaseSocialUsers();
+  renderNotifications();
 
   showTab('discover');
   loadTrending();
@@ -234,8 +235,13 @@ function bindEvents() {
     e.stopPropagation();
     document.getElementById('user-dropdown').classList.toggle('hidden');
   });
-  document.addEventListener('click', () => {
-    document.getElementById('user-dropdown')?.classList.add('hidden');
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#user-menu-btn')) {
+      document.getElementById('user-dropdown')?.classList.add('hidden');
+    }
+    if (!e.target.closest('.notification-menu-wrap')) {
+      closeNotificationDropdown();
+    }
   });
 
   // Sign out
@@ -1673,6 +1679,209 @@ function getFollowingUserIds() {
   return new Set();
 }
 
+const BUSE_USER = {
+  id: 'user_buse',
+  username: 'buse',
+  name: 'Buse',
+  avatar: null,
+  role: '⭐ BingeTracker Üyesi',
+  bio: 'Dizi ve film maratoncusu 🎬 Favori türlerim: Bilim Kurgu ve Gerilim 🍿',
+  stats: {
+    movies: 14,
+    series: 8,
+    hours: 92,
+    avgRating: 8.8
+  },
+  watchlist: [
+    {
+      tmdb_id: 66732,
+      media_type: 'tv',
+      title: 'Stranger Things',
+      poster_path: '/49WJfeN0moxb9IPfGn8AIqMGskD.jpg',
+      status: 'watched',
+      rating: 9,
+      current_season: 4,
+      current_episode: 9,
+      notes: 'Final sezonunu sabırsızlıkla bekliyorum!',
+      updated_at: '2 gün önce'
+    },
+    {
+      tmdb_id: 157336,
+      media_type: 'movie',
+      title: 'Interstellar',
+      poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+      status: 'watched',
+      rating: 10,
+      notes: 'Sinema tarihinin en iyi başyapıtlarından biri.',
+      updated_at: 'Dün'
+    },
+    {
+      tmdb_id: 100088,
+      media_type: 'tv',
+      title: 'The Last of Us',
+      poster_path: '/uKvVjHNqB5VmOrdxqAt2V7JMrqi.jpg',
+      status: 'watching',
+      rating: 9,
+      current_season: 1,
+      current_episode: 7,
+      notes: 'Atmosferi ve müzikleri tek kelimeyle harika.',
+      updated_at: 'Bugün'
+    },
+    {
+      tmdb_id: 27205,
+      media_type: 'movie',
+      title: 'Inception',
+      poster_path: '/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg',
+      status: 'watched',
+      rating: 10,
+      notes: 'Rüya içinde rüya konsepti harika işlenmiş.',
+      updated_at: '3 gün önce'
+    }
+  ]
+};
+
+// ── Notification Center State & Methods ────────────────────────────────────────
+export function getNotifications() {
+  const currentUserId = currentUser?.id || 'guest';
+  const key = `binge_user_notifications_${currentUserId}`;
+  const saved = localStorage.getItem(key);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {}
+  }
+
+  // Seed default follow notification from Buse if new
+  const defaultNotifs = [
+    {
+      id: 'notif_buse_follow_1',
+      type: 'follow',
+      senderId: 'user_buse',
+      senderName: 'Buse',
+      senderUsername: 'buse',
+      senderAvatar: null,
+      message: 'seni takip etmeye başladı! 🍿',
+      timeAgo: 'Az önce',
+      timestamp: Date.now(),
+      read: false
+    }
+  ];
+  localStorage.setItem(key, JSON.stringify(defaultNotifs));
+  return defaultNotifs;
+}
+
+export function saveNotifications(list) {
+  const currentUserId = currentUser?.id || 'guest';
+  const key = `binge_user_notifications_${currentUserId}`;
+  localStorage.setItem(key, JSON.stringify(list));
+  renderNotifications();
+}
+
+export function addNotification(notif) {
+  const list = getNotifications();
+  const newNotif = {
+    id: 'notif_' + Date.now(),
+    timestamp: Date.now(),
+    read: false,
+    ...notif
+  };
+  list.unshift(newNotif);
+  saveNotifications(list);
+  showToast(`🔔 ${notif.senderName || 'Biri'} ${notif.message}`, 'info');
+}
+window.addNotification = addNotification;
+
+export function renderNotifications() {
+  const list = getNotifications();
+  const badge = document.getElementById('notification-badge');
+  const stream = document.getElementById('notification-list-stream');
+
+  const unreadCount = list.filter(n => !n.read).length;
+  if (badge) {
+    badge.textContent = unreadCount;
+    badge.classList.toggle('hidden', unreadCount === 0);
+  }
+
+  if (!stream) return;
+
+  if (!list.length) {
+    stream.innerHTML = `
+      <div class="notif-empty-state">
+        <i data-lucide="bell-off" class="icon-lg"></i>
+        <p>Henüz yeni bir bildiriminiz yok.</p>
+      </div>
+    `;
+    renderIcons(stream);
+    return;
+  }
+
+  stream.innerHTML = list.map(n => {
+    return `
+      <div class="notification-item ${n.read ? '' : 'unread'}" onclick="openNotificationProfile('${n.senderId}', '${n.id}')">
+        <div class="notif-avatar-wrap">
+          ${n.senderAvatar 
+            ? `<img src="${n.senderAvatar}" class="notif-avatar-img" alt="${escHtml(n.senderName)}">` 
+            : (n.senderName ? n.senderName.slice(0,2).toUpperCase() : 'BT')}
+        </div>
+        <div class="notif-body">
+          <p class="notif-text">
+            <span class="notif-user-highlight">${escHtml(n.senderName)}</span> ${escHtml(n.message)}
+          </p>
+          <div class="notif-time">
+            <i data-lucide="clock" class="icon-xxs"></i>
+            <span>${n.timeAgo || 'Az önce'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  renderIcons(stream);
+}
+window.renderNotifications = renderNotifications;
+
+export function toggleNotificationDropdown() {
+  const panel = document.getElementById('notification-dropdown');
+  if (!panel) return;
+  const isHidden = panel.classList.contains('hidden');
+  if (isHidden) {
+    panel.classList.remove('hidden');
+    renderNotifications();
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+window.toggleNotificationDropdown = toggleNotificationDropdown;
+
+export function closeNotificationDropdown() {
+  const panel = document.getElementById('notification-dropdown');
+  if (panel) panel.classList.add('hidden');
+}
+window.closeNotificationDropdown = closeNotificationDropdown;
+
+export function markAllNotificationsAsRead() {
+  const list = getNotifications();
+  list.forEach(n => n.read = true);
+  saveNotifications(list);
+}
+window.markAllNotificationsAsRead = markAllNotificationsAsRead;
+
+export function openNotificationProfile(userId, notifId) {
+  if (notifId) {
+    const list = getNotifications();
+    const item = list.find(n => n.id === notifId);
+    if (item) {
+      item.read = true;
+      saveNotifications(list);
+    }
+  }
+  closeNotificationDropdown();
+  if (userId) {
+    openFriendProfile(userId);
+  }
+}
+window.openNotificationProfile = openNotificationProfile;
+
 function saveFollowingUserIds(set) {
   MOCK_USER_IDS.forEach(id => set.delete(id));
   localStorage.setItem('binge_following_ids', JSON.stringify(Array.from(set)));
@@ -1680,13 +1889,20 @@ function saveFollowingUserIds(set) {
 
 function getStoredSocialProfiles() {
   const saved = localStorage.getItem('binge_registered_profiles');
+  let list = [];
   if (saved) {
     try {
-      const parsed = JSON.parse(saved);
-      return parsed.filter(u => !MOCK_USER_IDS.has(u.id) && u.id !== 'user_ahmet');
+      list = JSON.parse(saved).filter(u => !MOCK_USER_IDS.has(u.id) && u.id !== 'user_ahmet');
     } catch (e) {}
   }
-  return [];
+
+  // Ensure Buse profile exists in social registry
+  if (!list.some(u => u.id === 'user_buse' || u.username.toLowerCase() === 'buse')) {
+    list.push(BUSE_USER);
+    localStorage.setItem('binge_registered_profiles', JSON.stringify(list));
+  }
+
+  return list;
 }
 
 export function syncCurrentUserToSocial() {
@@ -2263,6 +2479,13 @@ export function toggleFollowUser(userId) {
     following.add(userId);
     saveFollowingUserIds(following);
     showToast(`${userName} takip ediliyor! ✓`, 'success');
+
+    logUserActivity({
+      actionType: 'FOLLOWED_USER',
+      targetName: userName,
+      targetUserId: userId,
+      detailText: `${userName} adlı kullanıcıyı takip etmeye başladı.`
+    });
   }
 
   renderSocialTab();

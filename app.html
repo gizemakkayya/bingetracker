@@ -242,6 +242,28 @@
         <i data-lucide="moon" class="icon-sm"></i>
       </button>
 
+      <!-- Notification Center Button & Dropdown -->
+      <div class="notification-menu-wrap" style="position:relative">
+        <button id="notification-btn" class="theme-toggle-btn notification-bell-btn" aria-label="Bildirimler" title="Bildirimler" onclick="toggleNotificationDropdown()">
+          <i data-lucide="bell" class="icon-sm"></i>
+          <span class="notification-badge hidden" id="notification-badge">0</span>
+        </button>
+
+        <!-- Notification Dropdown Panel -->
+        <div class="notification-dropdown-panel hidden" id="notification-dropdown" role="menu">
+          <div class="notification-panel-header">
+            <div class="notif-header-title">
+              <i data-lucide="bell" class="icon-xs"></i>
+              <span>Bildirimler</span>
+            </div>
+            <button type="button" class="notif-mark-all-btn" onclick="markAllNotificationsAsRead()">Tümünü Okundu Say</button>
+          </div>
+          <div class="notification-list-stream" id="notification-list-stream">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
       <button class="user-avatar-btn" id="user-menu-btn" aria-haspopup="true" aria-expanded="false">
         <div class="user-avatar" aria-hidden="true">
           <span id="user-initials">–</span>
