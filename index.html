@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/variables.css?v=3">
+  <link rel="stylesheet" href="css/main.css?v=3">
+  <link rel="stylesheet" href="css/auth.css?v=3">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     document.documentElement.dataset.theme = 'dark';
@@ -82,32 +82,9 @@
       <div class="auth-card-top">
         <div class="auth-center-badge">
           <i data-lucide="clapperboard" class="icon-xs"></i>
-          <span>Dizi & Film Takip Platformu</span>
+          <span>Dizi & Film Takibi</span>
         </div>
-        <h1 class="auth-card-title" id="auth-heading">Sinema Dünyana Giriş Yap</h1>
-        <p class="auth-card-sub" id="auth-subheading">
-          Kaldığın sezon ve bölümü kaydet, izleme listeni oluştur ve toplam izleme süreni anında gör.
-        </p>
-
-        <!-- Eye-catching Feature Highlights -->
-        <div class="auth-features-bar">
-          <div class="feature-badge-pill">
-            <i data-lucide="tv" class="icon-xs"></i>
-            <span>Sezon & Bölüm Takibi</span>
-          </div>
-          <div class="feature-badge-pill">
-            <i data-lucide="film" class="icon-xs"></i>
-            <span>500.000+ Dizi & Film</span>
-          </div>
-          <div class="feature-badge-pill">
-            <i data-lucide="clock" class="icon-xs"></i>
-            <span>İzleme Süresi Analizi</span>
-          </div>
-          <div class="feature-badge-pill">
-            <i data-lucide="star" class="icon-xs"></i>
-            <span>Puanlama & Yorumlar</span>
-          </div>
-        </div>
+        <h1 class="auth-card-title" id="auth-heading">Giriş Yap</h1>
       </div>
 
       <!-- Error / success messages -->
@@ -236,10 +213,13 @@
     const isLogin = mode === 'login';
     document.getElementById('login-form').classList.toggle('hidden', !isLogin);
     document.getElementById('register-form').classList.toggle('hidden', isLogin);
-    document.getElementById('auth-heading').textContent = isLogin ? 'Sinema Dünyana Giriş Yap' : 'Ücretsiz Hesabını Oluştur';
-    document.getElementById('auth-subheading').textContent = isLogin
-      ? 'Kaldığın sezon ve bölümü kaydet, izleme listeni oluştur ve toplam izleme süreni anında gör.'
-      : 'Film ve dizi kütüphaneni oluşturup bölüm bölüm takip etmeye birkaç saniyede başla.';
+    document.getElementById('auth-heading').textContent = isLogin ? 'Giriş Yap' : 'Kayıt Ol';
+    const subEl = document.getElementById('auth-subheading');
+    if (subEl) {
+      subEl.textContent = isLogin
+        ? 'Kaldığın sezon ve bölümü kaydet, izleme listeni oluştur.'
+        : 'Film ve dizi kütüphaneni oluşturup bölüm bölüm takip et.';
+    }
     clearMessages();
     if (window.lucide) window.lucide.createIcons();
   };
