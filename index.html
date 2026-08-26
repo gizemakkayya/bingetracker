@@ -63,6 +63,38 @@
   <div class="canvas-vignette"></div>
   <div class="center-glow-orb"></div>
 
+  <!-- ── Cinematic Intro Splash (Ahmet Fuad Kahriman Tribute) ── -->
+  <div id="intro-splash" class="intro-splash-overlay">
+    <div class="intro-splash-content">
+      <div class="intro-avatar-wrapper">
+        <div class="intro-avatar-glow"></div>
+        <div class="intro-avatar-frame">
+          <img src="assets/proje_muduru.jpg" alt="Proje Müdürü Ahmet Fuad Kahriman" id="intro-photo">
+        </div>
+      </div>
+      
+      <div class="intro-badge">
+        <i data-lucide="sparkles" class="icon-xs"></i>
+        <span>BingeTracker Özel Sunumu</span>
+      </div>
+
+      <h2 class="intro-tribute-text">
+        PROJE MÜDÜRÜ
+        <span class="intro-tribute-highlight">AHMET FUAD KAHRİMAN'IN</span>
+        KATKILARIYLA
+      </h2>
+
+      <div class="intro-progress-bar-wrap">
+        <div class="intro-progress-bar-fill"></div>
+      </div>
+
+      <button type="button" class="intro-skip-btn" id="intro-skip-btn" onclick="dismissIntroSplash()">
+        <span>Uygulamaya Geç</span>
+        <i data-lucide="arrow-right" class="icon-xs"></i>
+      </button>
+    </div>
+  </div>
+
   <!-- ── Top Header Bar ────────────────────────────── -->
   <header class="auth-top-bar">
     <div class="auth-logo-mark">
@@ -318,6 +350,23 @@
     if (msg.includes('Email rate limit')) return 'Çok fazla deneme. Lütfen bekleyin.';
     return msg;
   }
+
+  // ── Intro Splash Dismissal ─────────────────────────
+  let splashDismissed = false;
+  window.dismissIntroSplash = function() {
+    if (splashDismissed) return;
+    splashDismissed = true;
+    const splash = document.getElementById('intro-splash');
+    if (splash) {
+      splash.classList.add('dismissed');
+      setTimeout(() => {
+        splash.style.display = 'none';
+      }, 800);
+    }
+  };
+
+  // Otomatik olarak 3.4 saniye sonra yumuşakça giriş sayfasına geç
+  setTimeout(window.dismissIntroSplash, 3400);
 
   if (window.lucide) window.lucide.createIcons();
 </script>
