@@ -3159,3 +3159,12 @@ button.nav-link.active {
   .friend-modal-content-wrap { padding: 0 14px 20px 14px; gap: 14px; }
   .modal { width: 95vw !important; max-width: 95vw !important; margin: 1rem auto !important; }
 }
+
+/* ── Modal Stacking Z-Index ─────────────────────────────────── */
+#friend-modal-backdrop {
+  z-index: 1000 !important;
+}
+
+#detail-modal-backdrop {
+  z-index: 1200 !important;
+}

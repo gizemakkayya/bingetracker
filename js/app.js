@@ -544,14 +544,19 @@ window.openEditModal = function(itemId) {
 };
 
 // ── Show detail/add modal ─────────────────────────────────────────────────────
-async function showDetailModal(tmdbId, mediaType, existingItem) {
+export async function showDetailModal(tmdbId, mediaType, existingItem) {
+  if (!existingItem) {
+    existingItem = watchlistItems.find(w => w.tmdb_id === tmdbId && w.media_type === mediaType) || null;
+  }
   detailTarget = existingItem;
   const backdrop = document.getElementById('detail-modal-backdrop');
   const bodyEl   = document.getElementById('detail-modal-body');
-  backdrop.classList.remove('hidden');
+  if (backdrop) backdrop.classList.remove('hidden');
 
   // Loading state
-  bodyEl.innerHTML = `<div class="loading-wrap" style="padding:var(--sp-12) 0"><div class="spinner-lg"></div></div>`;
+  if (bodyEl) {
+    bodyEl.innerHTML = `<div class="loading-wrap" style="padding:var(--sp-12) 0"><div class="spinner-lg"></div></div>`;
+  }
 
   try {
     let details, title, genres, overview, posterPath, runtime;
@@ -1141,6 +1146,7 @@ window.closeDetailModal = function() {
   document.getElementById('detail-modal-backdrop')?.classList.add('hidden');
   detailTarget = null;
 };
+window.showDetailModal = showDetailModal;
 
 window.saveDetailModal = async function() {
   try {
