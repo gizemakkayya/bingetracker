@@ -2250,7 +2250,12 @@ function renderSocialSidebar() {
   }
 
   if (miniSuggest) {
-    const suggestedUsers = allUsers.filter(u => !following.has(u.id));
+    const currentUserId = currentUser?.id;
+    const currentUsername = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
+    const suggestedUsers = allUsers.filter(u => {
+      const isMe = u.id === currentUserId || (currentUsername && u.username.toLowerCase() === currentUsername);
+      return !isMe && !following.has(u.id);
+    });
     if (!suggestedUsers.length) {
       miniSuggest.innerHTML = `<p class="social-side-empty">Tüm önerilen profilleri takip ediyorsunuz ✓</p>`;
     } else {
@@ -2392,6 +2397,15 @@ function renderSocialDiscover(query = '') {
   } else {
     if (titleEl) titleEl.textContent = `Tüm Kullanıcılar & Öneriler (${results.length})`;
   }
+
+  // Sort Buse and suggested profiles directly to the top
+  results.sort((a, b) => {
+    const isBuseA = a.id === 'user_buse' || a.username.toLowerCase() === 'buse';
+    const isBuseB = b.id === 'user_buse' || b.username.toLowerCase() === 'buse';
+    if (isBuseA && !isBuseB) return -1;
+    if (!isBuseA && isBuseB) return 1;
+    return 0;
+  });
 
   if (!results.length) {
     grid.innerHTML = `
