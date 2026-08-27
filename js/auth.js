@@ -27,6 +27,18 @@ export async function signUp({ email, password, username }) {
 export async function signIn({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
+
+  if (data?.user) {
+    const rawUsername = data.user.user_metadata?.username || email.split('@')[0] || 'kullanici';
+    try {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        username: rawUsername.toLowerCase().replace(/\s+/g, ''),
+        created_at: new Date().toISOString()
+      });
+    } catch (e) {}
+  }
+
   return data;
 }
 
@@ -40,8 +52,10 @@ export async function signOut() {
 export async function updateProfile(userId, updates = {}) {
   const { error } = await supabase
     .from('profiles')
-    .update(updates)
-    .eq('id', userId);
+    .upsert({
+      id: userId,
+      ...updates
+    });
   if (error) throw error;
 }
 

@@ -148,6 +148,18 @@ async function init() {
   }
   currentUser = session.user;
   currentProfile = await getProfile(currentUser.id);
+  if (!currentProfile) {
+    const rawUsername = currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'Kullanıcı';
+    currentProfile = {
+      id: currentUser.id,
+      username: rawUsername.toLowerCase().replace(/\s+/g, ''),
+      avatar_url: currentUser.user_metadata?.avatar_url || null,
+      bio: 'Dizi & film maratoncusu 🎬'
+    };
+    try {
+      await supabase.from('profiles').upsert(currentProfile);
+    } catch (e) {}
+  }
 
   initTheme();
   renderUserInfo();
@@ -2400,11 +2412,12 @@ function getStoredSocialProfiles() {
   let list = [];
   if (saved) {
     try {
-      list = JSON.parse(saved).filter(u => u.id !== 'user_ahmet' && u.id !== 'user_buse');
+      list = JSON.parse(saved);
+      if (!Array.isArray(list)) list = [];
     } catch (e) {}
   }
 
-  // Pre-seed Melike, Selin, and Emre if not already present
+  // Pre-seed default community profiles if not already present
   const defaultProfiles = [
     {
       id: 'user_melike_profile',
@@ -2419,6 +2432,31 @@ function getStoredSocialProfiles() {
         { tmdb_id: 70523, media_type: 'tv', title: 'Dark', poster_path: '/apbrbWs8M9lyOpJYU5WXrpFbk1Z.jpg', status: 'watched', rating: 10, notes: 'Zaman yolculuğu konseptinin zirvesi.', updated_at: 'Dün' },
         { tmdb_id: 76331, media_type: 'tv', title: 'Succession', poster_path: '/7T6bS4yqK2uYvM7O3U3v3r1v4.jpg', status: 'watched', rating: 10, notes: 'Karakter derinliği inanılmaz.', updated_at: '3 gün önce' },
         { tmdb_id: 157336, media_type: 'movie', title: 'Interstellar', poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg', status: 'watched', rating: 10, notes: 'Müzikleri ve atmosferi başyapıt.', updated_at: 'Geçen hafta' }
+      ]
+    },
+    {
+      id: 'user_buse_profile',
+      username: 'buse1',
+      name: 'Buse',
+      avatar: null,
+      role: '⭐ BingeTracker Üyesi',
+      bio: 'Dizi & film maratoncusu 🍿',
+      stats: { movies: 12, series: 18, hours: 86, avgRating: 8.5 },
+      watchlist: [
+        { tmdb_id: 1399, media_type: 'tv', title: 'Game of Thrones', poster_path: '/1XS1oqL89opfnbLl8WnZY1DO1u8.jpg', status: 'watched', rating: 9, notes: 'Efsane.', updated_at: '3 gün önce' },
+        { tmdb_id: 119051, media_type: 'tv', title: 'Wednesday', poster_path: '/9PFonQ9516RgA7wTVd2Br8d09Ym.jpg', status: 'watched', rating: 8, notes: 'Eğlenceli ve gizemli.', updated_at: 'Geçen hafta' }
+      ]
+    },
+    {
+      id: 'user_ahmet_profile',
+      username: 'ahmet',
+      name: 'Ahmet',
+      avatar: null,
+      role: '🍿 Dizi Gurmesi',
+      bio: 'Tüm gün dizi izleyebilirim. Bilim kurgu ve dram favorim.',
+      stats: { movies: 15, series: 20, hours: 120, avgRating: 8.7 },
+      watchlist: [
+        { tmdb_id: 1396, media_type: 'tv', title: 'Breaking Bad', poster_path: '/ggFHVNu6YYI5L9pCfOacjizRGt.jpg', status: 'watched', rating: 10, notes: 'Tüm zamanların en iyisi.', updated_at: 'Dün' }
       ]
     },
     {
@@ -2446,6 +2484,30 @@ function getStoredSocialProfiles() {
         { tmdb_id: 1399, media_type: 'tv', title: 'Game of Thrones', poster_path: '/1XS1oqL89opfnbLl8WnZY1DO1u8.jpg', status: 'watched', rating: 9, notes: 'Unutulmaz sezonlar.', updated_at: '2 gün önce' },
         { tmdb_id: 27205, media_type: 'movie', title: 'Inception', poster_path: '/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg', status: 'watched', rating: 10, notes: 'Rüya içinde rüya.', updated_at: 'Geçen hafta' }
       ]
+    },
+    {
+      id: 'user_can_profile',
+      username: 'can',
+      name: 'Can',
+      avatar: null,
+      role: '🎬 Sinema Tutkunu',
+      bio: 'Klasik filmler, Oscar adayları ve festival sineması.',
+      stats: { movies: 35, series: 8, hours: 110, avgRating: 8.9 },
+      watchlist: [
+        { tmdb_id: 278, media_type: 'movie', title: 'The Shawshank Redemption', poster_path: '/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg', status: 'watched', rating: 10, notes: 'Başyapıt.', updated_at: '4 gün önce' }
+      ]
+    },
+    {
+      id: 'user_zeynep_profile',
+      username: 'zeynep',
+      name: 'Zeynep',
+      avatar: null,
+      role: '✨ Dizi & Anime Aşığı',
+      bio: 'Anime, fantastik ve komedi dizileri favorim.',
+      stats: { movies: 16, series: 28, hours: 130, avgRating: 8.6 },
+      watchlist: [
+        { tmdb_id: 85271, media_type: 'tv', title: 'WandaVision', poster_path: '/frobvpWgB5G11fO688z19q3XQ6w.jpg', status: 'watched', rating: 9, notes: 'Çok yaratıcı.', updated_at: '5 gün önce' }
+      ]
     }
   ];
 
@@ -2455,13 +2517,12 @@ function getStoredSocialProfiles() {
     }
   });
 
-  // Final deduplication by unique ID or clean username
+  // Deduplication by clean username or id
   const seen = new Set();
   const deduplicated = [];
   for (const item of list) {
-    if (item.id === 'user_ahmet' || item.id === 'user_buse') continue;
     const key = (item.username || item.name || item.id || '').toLowerCase().replace(/\s+/g, '');
-    if (!seen.has(key)) {
+    if (key && !seen.has(key)) {
       seen.add(key);
       deduplicated.push(item);
     }
@@ -2592,7 +2653,7 @@ async function fetchSupabaseSocialUsers() {
     localStorage.setItem('binge_registered_profiles', JSON.stringify(stored));
     if (activeTab === 'social') {
       if (socialSubTab === 'friends') renderSocialFriends();
-      else if (socialSubTab === 'discover') renderSocialDiscover();
+      else if (socialSubTab === 'discover') renderSocialDiscover(document.getElementById('social-user-search-input')?.value || '');
       else if (socialSubTab === 'feed') renderSocialSidebar();
     }
   } catch (err) {
@@ -2940,10 +3001,129 @@ function renderSocialFriends() {
   renderIcons(grid);
 }
 
+function normalizeTurkish(str) {
+  if (!str) return '';
+  return str
+    .toString()
+    .trim()
+    .replace(/^@+/, '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/i̇/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+let socialSearchDebounce = null;
+
 export function handleSocialSearch(q) {
   renderSocialDiscover(q);
+
+  const cleanQ = (q || '').trim().replace(/^@+/, '');
+  if (cleanQ.length >= 2) {
+    if (socialSearchDebounce) clearTimeout(socialSearchDebounce);
+    socialSearchDebounce = setTimeout(async () => {
+      await searchSupabaseProfiles(cleanQ);
+      const curVal = document.getElementById('social-user-search-input')?.value || '';
+      if (curVal === q) {
+        renderSocialDiscover(q);
+      }
+    }, 300);
+  }
 }
 window.handleSocialSearch = handleSocialSearch;
+
+async function searchSupabaseProfiles(query) {
+  try {
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .ilike('username', `%${query}%`)
+      .limit(15);
+    
+    if (error || !profiles || !profiles.length) return;
+
+    let watchMap = {};
+    try {
+      const userIds = profiles.map(p => p.id);
+      const { data: watchlists } = await supabase
+        .from('watchlist')
+        .select('*')
+        .in('user_id', userIds);
+      if (watchlists) {
+        watchlists.forEach(w => {
+          if (!watchMap[w.user_id]) watchMap[w.user_id] = [];
+          watchMap[w.user_id].push(w);
+        });
+      }
+    } catch (e) {}
+
+    const stored = getStoredSocialProfiles();
+    let updated = false;
+
+    profiles.forEach(p => {
+      if (!p.id) return;
+      const rawName = p.username || 'Kullanıcı';
+      const uname = rawName.toLowerCase().replace(/\s+/g, '');
+      const userWatchlist = watchMap[p.id] || [];
+      const movies = userWatchlist.filter(w => w.media_type === 'movie').length;
+      const series = userWatchlist.filter(w => w.media_type === 'tv').length;
+      const rated = userWatchlist.filter(w => (w.rating || 0) > 0);
+      const avgRating = rated.length 
+        ? parseFloat((rated.reduce((acc, w) => acc + (w.rating || 0), 0) / rated.length).toFixed(1))
+        : 0;
+      const totalHours = Math.round(userWatchlist.length * 1.5);
+
+      const userObj = {
+        id: p.id,
+        username: uname,
+        name: rawName.charAt(0).toUpperCase() + rawName.slice(1),
+        avatar: p.avatar_url || null,
+        role: '⭐ BingeTracker Üyesi',
+        bio: p.bio || 'Dizi & film maratoncusu 🍿',
+        stats: {
+          movies,
+          series,
+          hours: totalHours,
+          avgRating
+        },
+        watchlist: userWatchlist.map(w => ({
+          tmdb_id: w.tmdb_id,
+          media_type: w.media_type,
+          title: w.title,
+          poster_path: w.poster_path,
+          status: w.status,
+          rating: w.rating,
+          current_season: w.current_season,
+          current_episode: w.current_episode,
+          total_seasons: w.total_seasons,
+          total_episodes: w.total_episodes,
+          notes: w.notes,
+          updated_at: 'Son zamanlarda'
+        }))
+      };
+
+      const idx = stored.findIndex(s => s.id === p.id || s.username === uname);
+      if (idx !== -1) {
+        stored[idx] = { ...stored[idx], ...userObj };
+      } else {
+        stored.push(userObj);
+      }
+      updated = true;
+    });
+
+    if (updated) {
+      localStorage.setItem('binge_registered_profiles', JSON.stringify(stored));
+    }
+  } catch (err) {
+    // Supabase sync
+  }
+}
 
 function renderSocialDiscover(query = '') {
   const grid = document.getElementById('social-discover-grid');
@@ -2953,35 +3133,28 @@ function renderSocialDiscover(query = '') {
   const following = getFollowingUserIds();
   const allUsers = getSocialUsers();
 
-  const q = query.trim().toLowerCase();
+  const rawQ = (query || '').trim();
+  const q = normalizeTurkish(rawQ);
   let results = allUsers;
   if (q) {
-    results = allUsers.filter(u => 
-      u.name.toLowerCase().includes(q) || 
-      u.username.toLowerCase().includes(q) || 
-      (u.role && u.role.toLowerCase().includes(q)) ||
-      (u.bio && u.bio.toLowerCase().includes(q))
-    );
-    if (titleEl) titleEl.textContent = `"${escHtml(query)}" için Arama Sonuçları (${results.length})`;
+    results = allUsers.filter(u => {
+      const uName = normalizeTurkish(u.name);
+      const uUname = normalizeTurkish(u.username);
+      const uRole = normalizeTurkish(u.role);
+      const uBio = normalizeTurkish(u.bio);
+      return uName.includes(q) || uUname.includes(q) || uRole.includes(q) || uBio.includes(q);
+    });
+    if (titleEl) titleEl.textContent = `"${escHtml(rawQ)}" için Arama Sonuçları (${results.length})`;
   } else {
     if (titleEl) titleEl.textContent = `Tüm Kullanıcılar & Öneriler (${results.length})`;
   }
-
-  // Sort Buse and suggested profiles directly to the top
-  results.sort((a, b) => {
-    const isBuseA = a.id === 'user_buse' || a.username.toLowerCase() === 'buse';
-    const isBuseB = b.id === 'user_buse' || b.username.toLowerCase() === 'buse';
-    if (isBuseA && !isBuseB) return -1;
-    if (!isBuseA && isBuseB) return 1;
-    return 0;
-  });
 
   if (!results.length) {
     grid.innerHTML = `
       <div class="friends-empty-panel">
         <div class="empty-feed-icon"><i data-lucide="search-x" class="icon-xl"></i></div>
         <h3>Aradığınız Kriterde Kullanıcı Bulunamadı</h3>
-        <p>"${escHtml(query)}" adına uygun kimse bulunamadı. Başka bir isim aramayı deneyin.</p>
+        <p>"${escHtml(rawQ)}" adına uygun kimse bulunamadı. Başka bir isim veya kullanıcı adı (@kullanici) aramayı deneyin.</p>
       </div>
     `;
     renderIcons(grid);
