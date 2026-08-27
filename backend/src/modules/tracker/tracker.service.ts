@@ -119,13 +119,19 @@ export class TrackerService {
       }
     });
 
+    // Check if entire series is completed
+    const isCompleted = item.totalSeasons && item.totalEpisodes 
+      ? (seasonNumber >= item.totalSeasons && episodeNumber >= Math.max(1, Math.floor(item.totalEpisodes / item.totalSeasons)))
+      : false;
+    const newStatus = isCompleted ? 'watched' : 'watching';
+
     // Update current season/episode on item
     const updated = await prisma.watchlistItem.update({
       where: { id: itemId },
       data: {
         currentSeason: seasonNumber,
         currentEpisode: episodeNumber,
-        status: 'watching'
+        status: newStatus
       }
     });
 
@@ -133,7 +139,7 @@ export class TrackerService {
     await prisma.activity.create({
       data: {
         userId,
-        type: 'WATCHED_EPISODE',
+        type: isCompleted ? 'WATCHED_MOVIE' : 'WATCHED_EPISODE',
         mediaTitle: item.title,
         tmdbId: item.tmdbId,
         mediaType: item.mediaType,

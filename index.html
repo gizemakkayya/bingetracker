@@ -348,10 +348,16 @@
 
     try {
       await signUp({ email, password, username });
-      showSuccess('Hesabınız oluşturuldu! E-postanızı kontrol edin ve doğrulama linkine tıklayın.');
-      btn.disabled = false;
-      btn.innerHTML = '<span class="btn-text">Hesap Oluştur</span><i data-lucide="sparkles" class="icon-sm"></i>';
-      if (window.lucide) window.lucide.createIcons();
+      showSuccess('Hesabınız başarıyla oluşturuldu! Giriş yapılıyor...');
+
+      // Auto login immediately without any verification code
+      try {
+        await signIn({ email, password });
+      } catch (_) {}
+
+      setTimeout(() => {
+        window.location.href = 'app.html';
+      }, 400);
     } catch (err) {
       showError(translateError(err.message));
       btn.disabled = false;

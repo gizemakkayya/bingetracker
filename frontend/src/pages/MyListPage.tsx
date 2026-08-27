@@ -89,6 +89,28 @@ export const MyListPage: React.FC = () => {
     }
   };
 
+  const calculateTVOverallProgress = (item: WatchlistItem) => {
+    const curS = item.currentSeason || 1;
+    const curE = item.currentEpisode || 1;
+    const totalEp = item.totalEpisodes;
+    const totalSeasons = item.totalSeasons || 1;
+
+    if (!totalEp) return null;
+    if (item.status === 'watched') return { totalWatched: totalEp, totalEp, pct: 100 };
+    if (item.status === 'watchlist') return { totalWatched: 0, totalEp, pct: 0 };
+
+    if (totalSeasons <= 1) {
+      const watched = Math.min(totalEp, curE);
+      return { totalWatched: watched, totalEp, pct: Math.round((watched / totalEp) * 100) };
+    }
+
+    const avgPerSeason = totalEp / totalSeasons;
+    const prevWatched = Math.round(Math.max(0, curS - 1) * avgPerSeason);
+    const totalWatched = Math.min(totalEp, prevWatched + curE);
+    const pct = Math.min(100, Math.round((totalWatched / totalEp) * 100));
+    return { totalWatched, totalEp, pct };
+  };
+
   const handleDelete = async (e: React.MouseEvent, itemId: string, title: string) => {
     e.stopPropagation();
     if (!confirm(`"${title}" içeriğini listeden silmek istediğinize emin misiniz?`)) return;
@@ -118,21 +140,40 @@ export const MyListPage: React.FC = () => {
     }
   };
 
+  const getItemEffectiveStatus = (item: WatchlistItem) => {
+    if (item.mediaType === 'tv' && item.status !== 'watchlist') {
+      const curS = item.currentSeason || 1;
+      const curE = item.currentEpisode || 1;
+      const totalEp = item.totalEpisodes;
+      const totalSeasons = item.totalSeasons || 1;
+      if (totalEp) {
+        if (totalSeasons <= 1 && curE >= totalEp) return 'watched';
+        const avgPerSeason = totalEp / totalSeasons;
+        const prevWatched = Math.round(Math.max(0, curS - 1) * avgPerSeason);
+        const totalWatched = Math.min(totalEp, prevWatched + curE);
+        if (totalWatched >= totalEp || (curS >= totalSeasons && curE >= Math.floor(avgPerSeason))) {
+          return 'watched';
+        }
+      }
+    }
+    return item.status;
+  };
+
   // Calculate live summary stats
   const stats = useMemo(() => {
     const totalCount = items.length;
     const moviesCount = items.filter((i) => i.mediaType === 'movie').length;
     const tvCount = items.filter((i) => i.mediaType === 'tv').length;
-    const watchingCount = items.filter((i) => i.status === 'watching').length;
-    const watchlistCount = items.filter((i) => i.status === 'watchlist').length;
-    const watchedCount = items.filter((i) => i.status === 'watched').length;
+    const watchingCount = items.filter((i) => getItemEffectiveStatus(i) === 'watching').length;
+    const watchlistCount = items.filter((i) => getItemEffectiveStatus(i) === 'watchlist').length;
+    const watchedCount = items.filter((i) => getItemEffectiveStatus(i) === 'watched').length;
 
     let totalMinutes = 0;
     let ratedItemsCount = 0;
     let totalScore = 0;
 
     items.forEach((i) => {
-      if (i.status === 'watched' && i.runtimeMinutes) {
+      if (getItemEffectiveStatus(i) === 'watched' && i.runtimeMinutes) {
         totalMinutes += i.runtimeMinutes;
       }
       if (i.rating) {
@@ -159,8 +200,9 @@ export const MyListPage: React.FC = () => {
   // Filter & Sort list
   const filteredAndSortedItems = useMemo(() => {
     let result = items.filter((item) => {
+      const effectiveStatus = getItemEffectiveStatus(item);
       // Status filter
-      if (statusTab !== 'all' && item.status !== statusTab) return false;
+      if (statusTab !== 'all' && effectiveStatus !== statusTab) return false;
       // Type filter
       if (typeFilter !== 'all' && item.mediaType !== typeFilter) return false;
       // Search query
@@ -509,6 +551,24 @@ export const MyListPage: React.FC = () => {
                           <span>Bölüm</span>
                         </button>
                       </div>
+                      {(() => {
+                        const prog = calculateTVOverallProgress(item);
+                        if (!prog) return null;
+                        return (
+                          <div className="space-y-0.5 pt-0.5">
+                            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-300"
+                                style={{ width: `${prog.pct}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
+                              <span>{prog.totalWatched} / {prog.totalEp} bölüm</span>
+                              <span className="text-emerald-400 font-bold">%{prog.pct}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : null}
 

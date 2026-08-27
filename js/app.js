@@ -31,6 +31,107 @@ let isTrending    = true;
 let isLoadingMore = false;
 let scrollObserver = null;
 
+// ── TV Seasons Cache & Cross-Season Progress Helpers ─────────────────────────
+const tvSeasonsCache = new Map();
+
+export function saveTVSeasonsCache(tmdbId, seasons) {
+  if (!tmdbId || !seasons) return;
+  const regular = (seasons || []).filter(s => s && s.season_number > 0);
+  tvSeasonsCache.set(Number(tmdbId), regular);
+  try {
+    localStorage.setItem(`binge_seasons_${tmdbId}`, JSON.stringify(regular));
+  } catch (e) {}
+}
+
+export function getTVSeasonsCache(tmdbId) {
+  if (!tmdbId) return null;
+  const idNum = Number(tmdbId);
+  if (tvSeasonsCache.has(idNum)) {
+    return tvSeasonsCache.get(idNum);
+  }
+  try {
+    const raw = localStorage.getItem(`binge_seasons_${idNum}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      tvSeasonsCache.set(idNum, parsed);
+      return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
+export function calculateTVProgress(currentSeason, currentEpisode, seasons, totalEpisodesFallback, totalSeasonsFallback) {
+  const curS = Math.max(1, parseInt(currentSeason) || 1);
+  const curE = Math.max(0, parseInt(currentEpisode) || 0);
+
+  const regular = (seasons || []).filter(s => s && s.season_number > 0);
+  if (regular.length > 0) {
+    let totalSeriesEpisodes = 0;
+    let watchedEpisodes = 0;
+
+    for (const s of regular) {
+      const epCount = Number(s.episode_count) || 0;
+      totalSeriesEpisodes += epCount;
+      if (s.season_number < curS) {
+        watchedEpisodes += epCount;
+      } else if (s.season_number === curS) {
+        watchedEpisodes += Math.min(epCount, curE);
+      }
+    }
+
+    if (totalSeriesEpisodes === 0) totalSeriesEpisodes = totalEpisodesFallback || 1;
+    const pct = Math.min(100, Math.max(0, Math.round((watchedEpisodes / totalSeriesEpisodes) * 100)));
+    return {
+      watchedEpisodes,
+      totalEpisodes: totalSeriesEpisodes,
+      pct
+    };
+  }
+
+  // Fallback estimation if exact seasons array is not cached yet
+  const totEp = Number(totalEpisodesFallback) || 0;
+  const totSeasons = Math.max(1, Number(totalSeasonsFallback) || 1);
+
+  if (totSeasons <= 1) {
+    const watched = Math.min(totEp || curE, curE);
+    const pct = totEp > 0 ? Math.min(100, Math.round((watched / totEp) * 100)) : (curE > 0 ? 100 : 0);
+    return { watchedEpisodes: watched, totalEpisodes: totEp || curE, pct };
+  }
+
+  const avgPerSeason = totEp > 0 ? (totEp / totSeasons) : 10;
+  const prevCompleted = Math.max(0, curS - 1);
+  const prevWatched = Math.round(prevCompleted * avgPerSeason);
+  const watched = totEp > 0 ? Math.min(totEp, prevWatched + curE) : (prevWatched + curE);
+  const total = totEp > 0 ? totEp : (totSeasons * 10);
+  const pct = Math.min(100, Math.max(0, Math.round((watched / total) * 100)));
+
+  return { watchedEpisodes: watched, totalEpisodes: total, pct };
+}
+
+// ── Effective Status Helper (TV shows with 100% progress are auto-migrated to 'watched') ──
+export function getItemEffectiveStatus(item) {
+  if (!item) return 'watchlist';
+  if (item.media_type === 'tv' && item.status !== 'watchlist') {
+    const cachedSeasons = getTVSeasonsCache(item.tmdb_id);
+    const curS = item.current_season || 1;
+    const curE = item.current_episode || 1;
+    const prog = calculateTVProgress(curS, curE, cachedSeasons, item.total_episodes, item.total_seasons);
+
+    const isCompleted = prog.pct >= 100 ||
+      (item.total_episodes && prog.watchedEpisodes >= item.total_episodes) ||
+      (item.total_seasons && curS >= item.total_seasons && item.total_episodes && curE >= Math.floor(item.total_episodes / item.total_seasons));
+
+    if (isCompleted) {
+      if (item.status !== 'watched') {
+        item.status = 'watched';
+        updateWatchlistItem(item.id, { status: 'watched' }).catch(() => {});
+      }
+      return 'watched';
+    }
+  }
+  return item.status;
+}
+
 // ── Lucide Icon Renderer ──────────────────────────────────────────────────────
 export function renderIcons(root = document) {
   if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -99,6 +200,7 @@ async function loadGenres() {
 async function loadWatchlist() {
   try {
     watchlistItems = await fetchWatchlist(currentUser.id);
+    watchlistItems.forEach(item => getItemEffectiveStatus(item));
     updateNavCounts();
     syncCurrentUserToSocial();
   } catch (e) {
@@ -177,7 +279,7 @@ function renderUserInfo() {
 
 // ── Update nav badge counts ───────────────────────────────────────────────────
 function updateNavCounts() {
-  const watching = watchlistItems.filter(i => i.status === 'watching').length;
+  const watching = watchlistItems.filter(i => getItemEffectiveStatus(i) === 'watching').length;
   const el = document.getElementById('watching-count');
   if (el) {
     el.textContent = watching;
@@ -641,7 +743,7 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
     const imdbId = details.imdb_id || details.external_ids?.imdb_id || null;
 
     const rawStatus  = existingItem?.status  || 'watchlist';
-    const curStatus  = (mediaType === 'tv' && rawStatus === 'watched') ? 'watching' : rawStatus;
+    const curStatus  = rawStatus;
     const curRating  = existingItem?.rating  || 0;
     const curNotes   = existingItem?.notes   || '';
     const curSeason  = existingItem?.current_season  || (mediaType === 'tv' ? 1 : null);
@@ -799,17 +901,14 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
                   <i data-lucide="bookmark" class="icon-xs"></i>
                   <span>İzlenecek</span>
                 </button>
-                ${mediaType === 'tv' ? `
-                  <button type="button" class="status-pill-btn ${curStatus === 'watching' ? 'active watching' : ''}" data-status="watching" onclick="setModalStatus('watching')">
-                    <i data-lucide="play" class="icon-xs"></i>
-                    <span>İzleniyor</span>
-                  </button>
-                ` : `
-                  <button type="button" class="status-pill-btn ${curStatus === 'watched' ? 'active watched' : ''}" data-status="watched" onclick="setModalStatus('watched')">
-                    <i data-lucide="check-circle" class="icon-xs"></i>
-                    <span>İzlendi</span>
-                  </button>
-                `}
+                <button type="button" class="status-pill-btn ${curStatus === 'watching' ? 'active watching' : ''}" data-status="watching" onclick="setModalStatus('watching')">
+                  <i data-lucide="play" class="icon-xs"></i>
+                  <span>İzleniyor</span>
+                </button>
+                <button type="button" class="status-pill-btn ${curStatus === 'watched' ? 'active watched' : ''}" data-status="watched" onclick="setModalStatus('watched')">
+                  <i data-lucide="check-circle" class="icon-xs"></i>
+                  <span>İzlendi</span>
+                </button>
               </div>
             </div>
 
@@ -916,8 +1015,14 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
 
     // Populate TV Show Season and Interactive Episodes List
     if (mediaType === 'tv') {
-      const regularSeasons = (details.seasons || []).filter(s => s.season_number > 0);
+      const regularSeasons = (details.seasons || []).filter(s => s && s.season_number > 0);
       const totalSeasonsCount = regularSeasons.length || details.number_of_seasons || 1;
+      const totalSeriesEpisodes = regularSeasons.reduce((acc, s) => acc + (s.episode_count || 0), 0) || details.number_of_episodes || existingItem?.total_episodes || 1;
+
+      // Cache seasons data for this show
+      if (regularSeasons.length > 0) {
+        saveTVSeasonsCache(tmdbId, regularSeasons);
+      }
 
       let currentSavedSeason = Math.min(totalSeasonsCount, Math.max(1, curSeason || 1));
       let currentSavedEpisode = Math.max(1, curEpisode || 1);
@@ -960,20 +1065,30 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
           const totalEpInSeason = episodes.length || 1;
 
           function updateProgressUI() {
-            let watchedCount = 0;
+            // 1. Season-specific progress
+            let seasonWatchedCount = 0;
             if (seasonNum < currentSavedSeason) {
-              watchedCount = totalEpInSeason;
+              seasonWatchedCount = totalEpInSeason;
             } else if (seasonNum === currentSavedSeason) {
-              watchedCount = Math.min(totalEpInSeason, currentSavedEpisode);
+              seasonWatchedCount = Math.min(totalEpInSeason, currentSavedEpisode);
             } else {
-              watchedCount = 0;
+              seasonWatchedCount = 0;
             }
-            const pct = Math.round((watchedCount / totalEpInSeason) * 100);
+            const seasonPct = Math.round((seasonWatchedCount / totalEpInSeason) * 100);
+
+            // 2. Cross-season overall series progress
+            const overall = calculateTVProgress(currentSavedSeason, currentSavedEpisode, regularSeasons, totalSeriesEpisodes, totalSeasonsCount);
+
             if (progressLabel) {
-              progressLabel.textContent = `${watchedCount} / ${totalEpInSeason} Bölüm İzlendi (%${pct})`;
+              progressLabel.innerHTML = `
+                <div class="season-progress-stats">
+                  <span class="season-stat-badge">${seasonNum}. Sezon: <strong>${seasonWatchedCount}/${totalEpInSeason}</strong> (%${seasonPct})</span>
+                  <span class="series-stat-badge">Tüm Sezonlar: <strong>${overall.watchedEpisodes}/${overall.totalEpisodes}</strong> (%${overall.pct})</span>
+                </div>
+              `;
             }
             if (progressFill) {
-              progressFill.style.width = `${pct}%`;
+              progressFill.style.width = `${overall.pct}%`;
             }
           }
 
@@ -1048,14 +1163,19 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
               if (hiddenEpTrackedInput) hiddenEpTrackedInput.value = currentSavedEpisode;
               if (hiddenEpInput) hiddenEpInput.value = currentSavedEpisode;
 
-              // Auto-set status to watching if in watchlist
-              setModalStatus('watching');
+              // Check if entire series is completed!
+              const overall = calculateTVProgress(currentSavedSeason, currentSavedEpisode, regularSeasons, totalSeriesEpisodes, totalSeasonsCount);
+              const isAllCompleted = overall.pct >= 100 || (currentSavedSeason === totalSeasonsCount && currentSavedEpisode === totalEpInSeason && totalEpInSeason > 0);
+              const targetStatus = isAllCompleted ? 'watched' : (currentSavedEpisode > 0 || currentSavedSeason > 1 ? 'watching' : 'watchlist');
 
-              // Update all card states
+              // Update status pill
+              setModalStatus(targetStatus);
+
+              // Update all card states in currently viewed season
               episodesListEl.querySelectorAll('.modal-ep-card').forEach(c => {
                 const cEp = parseInt(c.dataset.ep);
                 let cWatched = false;
-                if (seasonNum < currentSavedSeason) {
+                if (seasonNum < currentSavedSeason || isAllCompleted) {
                   cWatched = true;
                 } else if (seasonNum === currentSavedSeason && cEp <= currentSavedEpisode) {
                   cWatched = true;
@@ -1068,16 +1188,16 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
               updateProgressUI();
 
               // Auto-save in background immediately without needing to click "Güncelle"
-              autoSaveProgress(currentSavedSeason, currentSavedEpisode);
+              autoSaveProgress(currentSavedSeason, currentSavedEpisode, targetStatus);
 
-              // Check if entire series is completed!
-              if (seasonNum === totalSeasonsCount && currentSavedEpisode === totalEpInSeason) {
-                triggerCelebration(title, isEnded ? 'Final Yaptı • Dizi Bitti' : 'Tüm Sezonlar Tamamlandı');
+              if (isAllCompleted) {
+                triggerCelebration(title, isEnded ? 'Final Yaptı • Dizi Bitti' : 'Tüm Sezonlar Tamamlandı • İzlendi Listesine Eklendi');
+                showToast(`🎉 Tüm sezonlar tamamlandı! "${title}" İzlendi listesine eklendi ✓`, 'success', 2500);
               }
             });
           });
 
-          async function autoSaveProgress(newSeason, newEpisode) {
+          async function autoSaveProgress(newSeason, newEpisode, newStatus) {
             try {
               const tmdbId    = parseInt(document.getElementById('modal-tmdb-id')?.value);
               const mediaType = document.getElementById('modal-media-type')?.value;
@@ -1089,6 +1209,7 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
               const totalSeasons  = parseInt(document.getElementById('modal-total-seasons')?.value) || null;
               const totalEpisodes = parseInt(document.getElementById('modal-total-episodes')?.value) || null;
               const genres = JSON.parse(document.getElementById('modal-genres')?.value || '[]');
+              const finalStatus = newStatus || document.getElementById('modal-status-val')?.value || 'watching';
 
               const payload = {
                 tmdb_id: tmdbId,
@@ -1096,7 +1217,7 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
                 title,
                 poster_path: poster,
                 genres,
-                status: 'watching',
+                status: finalStatus,
                 rating,
                 notes,
                 runtime_minutes: runtime,
@@ -1118,7 +1239,11 @@ export async function showDetailModal(tmdbId, mediaType, existingItem) {
               }
               updateNavCounts();
               if (activeTab === 'mylist') renderWatchlistTab();
-              showToast(`S${newSeason}:B${newEpisode} kaydedildi ✓`, 'success', 1800);
+              if (finalStatus === 'watched') {
+                showToast(`"${title}" İzlendi olarak kaydedildi ✓`, 'success', 2000);
+              } else {
+                showToast(`S${newSeason}:B${newEpisode} kaydedildi ✓`, 'success', 1800);
+              }
             } catch (err) {
               console.error('Otomatik kaydetme hatası:', err);
             }
@@ -1203,6 +1328,9 @@ window.closeDetailModal = function() {
 window.showDetailModal = showDetailModal;
 
 window.saveDetailModal = async function() {
+  const btn = document.getElementById('detail-save-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner-lg" style="width:18px;height:18px;border-width:2px"></div>'; }
+
   try {
     const tmdbId    = parseInt(document.getElementById('modal-tmdb-id')?.value);
     const mediaType = document.getElementById('modal-media-type')?.value;
@@ -1212,8 +1340,8 @@ window.saveDetailModal = async function() {
     const rating    = parseInt(document.getElementById('modal-rating-val')?.value) || null;
     const notes     = document.getElementById('modal-notes')?.value || '';
     const runtime   = parseInt(document.getElementById('modal-runtime')?.value) || null;
-    const curSeason = parseInt(document.getElementById('modal-tracked-season')?.value) || 1;
-    const curEp     = parseInt(document.getElementById('modal-tracked-episode')?.value) || 1;
+    const curSeason = parseInt(document.getElementById('modal-tracked-season')?.value || document.getElementById('modal-season')?.value) || 1;
+    const curEp     = parseInt(document.getElementById('modal-tracked-episode')?.value || document.getElementById('modal-episode')?.value) || 1;
     const totalSeasons  = parseInt(document.getElementById('modal-total-seasons')?.value) || null;
     const totalEpisodes = parseInt(document.getElementById('modal-total-episodes')?.value) || null;
     let genres = [];
@@ -1264,6 +1392,7 @@ window.saveDetailModal = async function() {
 
   } catch (err) {
     showToast('Kaydetme hatası: ' + err.message, 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = `<i data-lucide="${detailTarget ? 'check' : 'plus'}" class="icon-xs"></i><span class="btn-text">${detailTarget ? 'Güncelle' : 'Listeye Ekle'}</span>`; renderIcons(btn); }
   }
 };
 
@@ -1448,79 +1577,6 @@ function startCanvasFireworks() {
   loop();
 }
 
-window.saveDetailModal = async function() {
-  const tmdbId    = parseInt(document.getElementById('modal-tmdb-id')?.value);
-  const mediaType = document.getElementById('modal-media-type')?.value;
-  const title     = document.getElementById('modal-title')?.value;
-  const poster    = document.getElementById('modal-poster')?.value;
-  const status    = document.getElementById('modal-status-val')?.value || document.getElementById('modal-status')?.value || 'watchlist';
-  const rating    = parseInt(document.getElementById('modal-rating-val')?.value) || null;
-  const notes     = document.getElementById('modal-notes')?.value || '';
-  const runtime   = parseInt(document.getElementById('modal-runtime')?.value) || null;
-  const totalSeasons  = parseInt(document.getElementById('modal-total-seasons')?.value) || null;
-  const totalEpisodes = parseInt(document.getElementById('modal-total-episodes')?.value) || null;
-  const genres = JSON.parse(document.getElementById('modal-genres')?.value || '[]');
-
-  let currentSeason  = null, currentEpisode = null;
-  if (mediaType === 'tv') {
-    currentSeason  = parseInt(document.getElementById('modal-tracked-season')?.value || document.getElementById('modal-season')?.value)  || 1;
-    currentEpisode = parseInt(document.getElementById('modal-tracked-episode')?.value || document.getElementById('modal-episode')?.value) || 1;
-  }
-
-  const payload = {
-    tmdb_id: tmdbId,
-    media_type: mediaType,
-    title,
-    poster_path: poster,
-    genres,
-    status,
-    rating,
-    notes,
-    runtime_minutes: runtime,
-    current_season: currentSeason,
-    current_episode: currentEpisode,
-    total_seasons: totalSeasons,
-    total_episodes: totalEpisodes,
-  };
-
-  const btn = document.getElementById('detail-save-btn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner-lg" style="width:18px;height:18px;border-width:2px"></div>'; }
-
-  try {
-    if (detailTarget) {
-      const updated = await updateWatchlistItem(detailTarget.id, payload);
-      const idx = watchlistItems.findIndex(w => w.id === detailTarget.id);
-      if (idx !== -1) watchlistItems[idx] = updated;
-      showToast('Güncellendi ✓', 'success');
-    } else {
-      const added = await addToWatchlist(currentUser.id, payload);
-      watchlistItems.unshift(added);
-      showToast('Listeye eklendi ✓', 'success');
-    }
-    updateNavCounts();
-    if (activeTab === 'mylist') renderWatchlistTab();
-    closeDetailModal();
-  } catch (e) {
-    showToast('Bir hata oluştu: ' + e.message, 'error');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-text">Kaydet</span>'; }
-  }
-};
-
-window.deleteFromModal = async function() {
-  if (!detailTarget) return;
-  if (!confirm(`"${detailTarget.title}" listeden kaldırılsın mı?`)) return;
-  try {
-    await deleteWatchlistItem(detailTarget.id);
-    watchlistItems = watchlistItems.filter(w => w.id !== detailTarget.id);
-    updateNavCounts();
-    if (activeTab === 'mylist') renderWatchlistTab();
-    closeDetailModal();
-    showToast('Listeden kaldırıldı', 'info');
-  } catch (e) {
-    showToast('Silinemedi: ' + e.message, 'error');
-  }
-};
-
 // ── MyList Media Filter State ───────────────────────────────────────────────
 let mylistMediaType = 'all'; // 'all' | 'tv' | 'movie'
 
@@ -1536,6 +1592,9 @@ window.setMyListMediaType = setMyListMediaType;
 
 // ── Watchlist tab rendering ───────────────────────────────────────────────────
 function renderWatchlistTab() {
+  // Auto-normalize any items that reached 100%
+  watchlistItems.forEach(item => getItemEffectiveStatus(item));
+
   // Update media type pill counts for all items in user's library
   const countAll = watchlistItems.length;
   const countTv = watchlistItems.filter(i => i.media_type === 'tv').length;
@@ -1549,7 +1608,7 @@ function renderWatchlistTab() {
   if (countMovieEl) countMovieEl.textContent = countMovie;
 
   // Filter by status tab AND by media type
-  let items = watchlistItems.filter(i => i.status === listActiveTab);
+  let items = watchlistItems.filter(i => getItemEffectiveStatus(i) === listActiveTab);
   if (mylistMediaType !== 'all') {
     items = items.filter(i => i.media_type === mylistMediaType);
   }
@@ -1568,7 +1627,7 @@ function renderWatchlistTab() {
   ['watchlist', 'watching', 'watched'].forEach(s => {
     const el = document.getElementById(`list-count-${s}`);
     if (el) {
-      el.textContent = watchlistItems.filter(i => i.status === s && (mylistMediaType === 'all' || i.media_type === mylistMediaType)).length;
+      el.textContent = watchlistItems.filter(i => getItemEffectiveStatus(i) === s && (mylistMediaType === 'all' || i.media_type === mylistMediaType)).length;
     }
   });
 
@@ -1591,9 +1650,28 @@ function renderWatchlistTab() {
   container.innerHTML = items.map(item => {
     const poster = item.poster_path ? getPosterUrl(item.poster_path, 'w342') : null;
     const isTV   = item.media_type === 'tv';
-    const progress = isTV && item.total_episodes && item.current_episode
-      ? Math.round((item.current_episode / item.total_episodes) * 100)
-      : null;
+
+    let totalWatched = 0;
+    let totalSeriesEp = item.total_episodes || null;
+    let progress = null;
+
+    if (isTV) {
+      if (item.status === 'watched') {
+        totalWatched = totalSeriesEp || (item.current_episode || 1);
+        progress = 100;
+      } else if (item.status === 'watchlist') {
+        totalWatched = 0;
+        progress = 0;
+      } else {
+        const curS = item.current_season || 1;
+        const curE = item.current_episode || 1;
+        const cachedSeasons = getTVSeasonsCache(item.tmdb_id);
+        const prog = calculateTVProgress(curS, curE, cachedSeasons, item.total_episodes, item.total_seasons);
+        totalWatched = prog.watchedEpisodes;
+        totalSeriesEp = prog.totalEpisodes || totalSeriesEp;
+        progress = prog.pct;
+      }
+    }
 
     return `
       <div class="wl-card" onclick="openEditModal('${item.id}')">
@@ -1624,7 +1702,7 @@ function renderWatchlistTab() {
             <div class="wl-card-ep" style="display:flex;align-items:center;gap:4px">
               <i data-lucide="tv" class="icon-xs" style="color:var(--clr-primary)"></i>
               <span>S${item.current_season} E${item.current_episode || 1}</span>
-              ${item.total_episodes ? `<span style="color:var(--clr-text-muted)">/ ${item.total_episodes} bölüm</span>` : ''}
+              ${totalSeriesEp ? `<span style="color:var(--clr-text-muted)">• ${totalWatched}/${totalSeriesEp} bölüm</span>` : ''}
             </div>
             ${progress !== null ? `
             <div class="ep-progress">
@@ -1632,8 +1710,8 @@ function renderWatchlistTab() {
                 <div class="ep-progress-fill" style="width:${progress}%"></div>
               </div>
               <div class="ep-progress-label">
-                <span>${item.current_episode || 0} bölüm</span>
-                <span>%${progress}</span>
+                <span>${totalWatched}${totalSeriesEp ? ` / ${totalSeriesEp}` : ''} bölüm</span>
+                <span style="font-weight:700;color:var(--clr-primary)">%${progress}</span>
               </div>
             </div>` : ''}
           ` : ''}

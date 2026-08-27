@@ -20,13 +20,14 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [detailTab, setDetailTab] = useState<'overview' | 'cast'>('overview');
   const rawStatus = existingItem?.status === 'dropped' ? 'watchlist' : existingItem?.status || 'watchlist';
-  const initialStatus = media.media_type === 'tv' && rawStatus === 'watched' ? 'watching' : rawStatus;
+  const initialStatus = rawStatus;
   const [status, setStatus] = useState<'watchlist' | 'watching' | 'watched'>(initialStatus);
   const [rating, setRating] = useState<number>(existingItem?.rating || 0);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [notes, setNotes] = useState<string>(existingItem?.notes || '');
-  const [currentSeason, setCurrentSeason] = useState<number>(existingItem?.currentSeason || 1);
-  const [currentEpisode, setCurrentEpisode] = useState<number>(existingItem?.currentEpisode || 1);
+  const [viewingSeason, setViewingSeason] = useState<number>(existingItem?.currentSeason || 1);
+  const [savedSeason, setSavedSeason] = useState<number>(existingItem?.currentSeason || 1);
+  const [savedEpisode, setSavedEpisode] = useState<number>(existingItem?.currentEpisode || 1);
   const [episodes, setEpisodes] = useState<TMDBEpisode[]>([]);
   const [episodesLoading, setEpisodesLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,7 +53,7 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
       async function loadEpisodes() {
         try {
           setEpisodesLoading(true);
-          const res = await api.get(`/media/season/${media.id}/${currentSeason}`);
+          const res = await api.get(`/media/season/${media.id}/${viewingSeason}`);
           setEpisodes(res.data.data.episodes || []);
         } catch (err) {
           console.error('Bölümler yüklenemedi:', err);
@@ -62,7 +63,7 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
       }
       loadEpisodes();
     }
-  }, [media, details, currentSeason]);
+  }, [media, details, viewingSeason]);
 
   const handleSave = async () => {
     if (!details) return;
@@ -77,8 +78,8 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
         status,
         rating: rating || null,
         notes,
-        currentSeason: media.media_type === 'tv' ? currentSeason : null,
-        currentEpisode: media.media_type === 'tv' ? currentEpisode : null,
+        currentSeason: media.media_type === 'tv' ? savedSeason : null,
+        currentEpisode: media.media_type === 'tv' ? savedEpisode : null,
         totalSeasons: details.number_of_seasons || null,
         totalEpisodes: details.number_of_episodes || null,
         runtimeMinutes: details.runtime || null
@@ -94,13 +95,20 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
 
   const handleEpisodeClick = async (epNum: number) => {
     let nextEpisode = epNum;
-    if (currentEpisode === epNum) {
+    let nextSeason = viewingSeason;
+
+    if (viewingSeason === savedSeason && savedEpisode === epNum) {
       nextEpisode = Math.max(0, epNum - 1);
     }
-    setCurrentEpisode(nextEpisode);
-    if (status === 'watchlist') setStatus('watching');
 
-    if (currentSeason === totalSeasonsCount && epNum === episodes.length && nextEpisode === epNum) {
+    setSavedSeason(nextSeason);
+    setSavedEpisode(nextEpisode);
+
+    const isAllFinished = nextSeason === totalSeasonsCount && epNum === episodes.length && nextEpisode === epNum;
+    const targetStatus = isAllFinished ? 'watched' : (nextEpisode > 0 || nextSeason > 1 ? 'watching' : 'watchlist');
+    setStatus(targetStatus);
+
+    if (isAllFinished) {
       setCelebrationOpen(true);
     }
 
@@ -111,10 +119,10 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
         mediaType: 'tv',
         title: details?.name || details?.title || '',
         posterPath: details?.poster_path || null,
-        status: 'watching',
+        status: targetStatus,
         rating: rating > 0 ? rating : null,
         notes: notes.trim() || null,
-        currentSeason: currentSeason,
+        currentSeason: nextSeason,
         currentEpisode: nextEpisode,
         totalSeasons: details?.number_of_seasons || null,
         totalEpisodes: details?.number_of_episodes || null,
@@ -141,12 +149,32 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
   const isTV = media.media_type === 'tv';
   const posterUrl = details.poster_path ? `https://image.tmdb.org/t/p/w342${details.poster_path}` : null;
   const backdropUrl = details.backdrop_path ? `https://image.tmdb.org/t/p/w1280${details.backdrop_path}` : null;
-  const regularSeasons = (details.seasons || []).filter((s) => s.season_number > 0);
+  const regularSeasons = (details.seasons || []).filter((s) => s && s.season_number > 0);
   const totalSeasonsCount = regularSeasons.length || details.number_of_seasons || 1;
+  const totalSeriesEpisodes = regularSeasons.reduce((acc, s) => acc + (s.episode_count || 0), 0) || details.number_of_episodes || 1;
   const releaseYear = (details.release_date || details.first_air_date || '').slice(0, 4);
 
-  const watchedCount = Math.min(episodes.length, currentEpisode);
-  const progressPct = episodes.length ? Math.round((watchedCount / episodes.length) * 100) : 0;
+  // Calculate total watched across ALL seasons
+  let totalWatchedAllSeasons = 0;
+  for (const s of regularSeasons) {
+    if (s.season_number < savedSeason) {
+      totalWatchedAllSeasons += (s.episode_count || 0);
+    } else if (s.season_number === savedSeason) {
+      totalWatchedAllSeasons += Math.min(s.episode_count || 0, savedEpisode);
+    }
+  }
+  const overallProgressPct = Math.min(100, Math.round((totalWatchedAllSeasons / totalSeriesEpisodes) * 100));
+
+  // Calculate watched in the currently viewed season
+  let seasonWatchedCount = 0;
+  if (viewingSeason < savedSeason) {
+    seasonWatchedCount = episodes.length;
+  } else if (viewingSeason === savedSeason) {
+    seasonWatchedCount = Math.min(episodes.length, savedEpisode);
+  } else {
+    seasonWatchedCount = 0;
+  }
+  const seasonProgressPct = episodes.length ? Math.round((seasonWatchedCount / episodes.length) * 100) : 0;
 
   const wpResults = details['watch/providers']?.results || {};
   const activeCountry = wpResults['TR'] || wpResults['US'] || Object.values(wpResults)[0];
@@ -378,7 +406,7 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
           {/* Watch Status Selector Pills */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">İzleme Durumu</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setStatus('watchlist')}
@@ -392,33 +420,39 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
                 <span>İzlenecek</span>
               </button>
               
-              {isTV ? (
-                <button
-                  type="button"
-                  onClick={() => setStatus('watching')}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
-                    status === 'watching'
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-400 shadow-md shadow-amber-500/10'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <Play className="w-3.5 h-3.5" />
-                  <span>İzleniyor</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setStatus('watched')}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
-                    status === 'watched'
-                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-md shadow-emerald-500/10'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>İzlendi</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setStatus('watching')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+                  status === 'watching'
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-400 shadow-md shadow-amber-500/10'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Play className="w-3.5 h-3.5" />
+                <span>İzleniyor</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStatus('watched');
+                  if (isTV) {
+                    setSavedSeason(totalSeasonsCount);
+                    const lastSeason = regularSeasons.find(s => s.season_number === totalSeasonsCount);
+                    setSavedEpisode(lastSeason?.episode_count || 1);
+                    setCelebrationOpen(true);
+                  }
+                }}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+                  status === 'watched'
+                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-md shadow-emerald-500/10'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>İzlendi</span>
+              </button>
             </div>
           </div>
 
@@ -467,10 +501,9 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
                   </span>
                 </div>
                 <select
-                  value={currentSeason}
+                  value={viewingSeason}
                   onChange={(e) => {
-                    setCurrentSeason(Number(e.target.value));
-                    setCurrentEpisode(1);
+                    setViewingSeason(Number(e.target.value));
                   }}
                   className="px-3 py-1.5 bg-slate-900 border border-white/15 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >
@@ -484,14 +517,18 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
 
               {/* Progress bar */}
               <div className="space-y-1">
-                <div className="flex justify-between text-[11px] font-semibold text-slate-400">
-                  <span>{watchedCount} / {episodes.length} Bölüm İzlendi</span>
-                  <span className="text-emerald-400 font-bold">%{progressPct}</span>
+                <div className="flex items-center justify-between text-[11px] font-semibold flex-wrap gap-2">
+                  <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    {viewingSeason}. Sezon: <strong>{seasonWatchedCount} / {episodes.length}</strong> (%{seasonProgressPct})
+                  </span>
+                  <span className="text-slate-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                    Tüm Sezonlar: <strong className="text-emerald-400">{totalWatchedAllSeasons} / {totalSeriesEpisodes}</strong> (%{overallProgressPct})
+                  </span>
                 </div>
                 <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-300 rounded-full"
-                    style={{ width: `${progressPct}%` }}
+                    style={{ width: `${overallProgressPct}%` }}
                   />
                 </div>
               </div>
@@ -509,7 +546,7 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
                   </div>
                 ) : (
                   episodes.map((ep) => {
-                    const isWatched = ep.episode_number <= currentEpisode;
+                    const isWatched = viewingSeason < savedSeason || (viewingSeason === savedSeason && ep.episode_number <= savedEpisode);
                     const stillUrl = ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : null;
                     return (
                       <div
