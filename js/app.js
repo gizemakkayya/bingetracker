@@ -106,26 +106,72 @@ async function loadWatchlist() {
   }
 }
 
-// ── Render user info in navbar ────────────────────────────────────────────────
+// ── Render user info in navbar & profile tab ─────────────────────────────────
 function renderUserInfo() {
   const name = currentProfile?.username || currentUser.email.split('@')[0];
   const initials = name.slice(0, 2).toUpperCase();
-  document.getElementById('user-initials').textContent = initials;
-  document.getElementById('user-name-display').textContent = name;
+  const avatarUrl = currentProfile?.avatar_url || localStorage.getItem(`binge_user_avatar_${currentUser?.id}`) || null;
 
-  // Profile tab
-  const pAvatar = document.getElementById('profile-avatar-initials');
-  if (pAvatar) pAvatar.textContent = initials;
+  // Navbar elements
+  const userInitialsEl = document.getElementById('user-initials');
+  const userAvatarImgEl = document.getElementById('navbar-user-avatar-img');
+  const userNameDisplay = document.getElementById('user-name-display');
+
+  if (userNameDisplay) userNameDisplay.textContent = name;
+
+  if (avatarUrl) {
+    if (userInitialsEl) userInitialsEl.style.display = 'none';
+    if (userAvatarImgEl) {
+      userAvatarImgEl.src = avatarUrl;
+      userAvatarImgEl.classList.remove('hidden');
+      userAvatarImgEl.style.display = 'block';
+    }
+  } else {
+    if (userInitialsEl) {
+      userInitialsEl.textContent = initials;
+      userInitialsEl.style.display = '';
+    }
+    if (userAvatarImgEl) {
+      userAvatarImgEl.classList.add('hidden');
+      userAvatarImgEl.style.display = 'none';
+    }
+  }
+
+  // Profile tab elements
+  const pAvatarInitials = document.getElementById('profile-avatar-initials');
+  const pAvatarImg = document.getElementById('profile-avatar-img');
+  const pRemoveBtn = document.getElementById('btn-remove-avatar');
   const pName = document.getElementById('profile-display-name');
-  if (pName) pName.textContent = name;
   const pEmail = document.getElementById('profile-email');
-  if (pEmail) pEmail.textContent = currentUser.email;
   const pSince = document.getElementById('profile-since');
+  const pUsernameInput = document.getElementById('profile-username-input');
+
+  if (avatarUrl) {
+    if (pAvatarInitials) pAvatarInitials.style.display = 'none';
+    if (pAvatarImg) {
+      pAvatarImg.src = avatarUrl;
+      pAvatarImg.classList.remove('hidden');
+      pAvatarImg.style.display = 'block';
+    }
+    if (pRemoveBtn) pRemoveBtn.classList.remove('hidden');
+  } else {
+    if (pAvatarInitials) {
+      pAvatarInitials.textContent = initials;
+      pAvatarInitials.style.display = '';
+    }
+    if (pAvatarImg) {
+      pAvatarImg.classList.add('hidden');
+      pAvatarImg.style.display = 'none';
+    }
+    if (pRemoveBtn) pRemoveBtn.classList.add('hidden');
+  }
+
+  if (pName) pName.textContent = name;
+  if (pEmail) pEmail.textContent = currentUser.email;
   if (pSince) {
     const d = new Date(currentUser.created_at);
     pSince.textContent = `Üye olma: ${d.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}`;
   }
-  const pUsernameInput = document.getElementById('profile-username-input');
   if (pUsernameInput) pUsernameInput.value = name;
 }
 
@@ -1656,6 +1702,264 @@ async function changePassword() {
   }
 }
 
+// ── Profile Avatar Picker & Upload Helpers ────────────────────────────────────
+const PRESET_AVATARS = [
+  // ── Breaking Bad & Better Call Saul ──
+  { name: 'Walter White', source: 'Breaking Bad', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/npIIZJGSrcJIJ6yHdmbqO6Jzo5I.jpg' },
+  { name: 'Jesse Pinkman', source: 'Breaking Bad', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/8Ac9uuoYwZoYVAIJfRLzzLsGGJn.jpg' },
+  { name: 'Saul Goodman', source: 'Better Call Saul', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/rF0Lb6SBhGSTvjRffmlKRSeI3jE.jpg' },
+  { name: 'Gus Fring', source: 'Breaking Bad', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/rcXnr82TwDzU4ZGdBeNXfG0ZQnZ.jpg' },
+
+  // ── Stranger Things ──
+  { name: 'Eleven', source: 'Stranger Things', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/kHO7hdNEVuTnQ0OjjrxP1RcAa0e.jpg' },
+  { name: 'Eddie Munson', source: 'Stranger Things', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/zshhuioZaH8S5ZKdMcojzWi1ntl.jpg' },
+  { name: 'Dustin Henderson', source: 'Stranger Things', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/alVT7oDp8N5G9WLIApI9jqeuqHq.jpg' },
+  { name: 'Steve Harrington', source: 'Stranger Things', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/ayIAVLMfZGEGIFwAo3pPnY7p59.jpg' },
+
+  // ── Game of Thrones & House of the Dragon ──
+  { name: 'Jon Snow', source: 'Game of Thrones', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/iGXlJbExWwZmo9sUDsYuzf4Sv4y.jpg' },
+  { name: 'Daenerys Targaryen', source: 'Game of Thrones', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/iFY6t7Ux9r70WB7Sp0TTVz6eGtm.jpg' },
+  { name: 'Tyrion Lannister', source: 'Game of Thrones', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/9CAd7wr8QZyIN0E7nm8v1B6WkGn.jpg' },
+  { name: 'Daemon Targaryen', source: 'House of the Dragon', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/wxMdHj4UA6LgIU5MiA7CKySZeVU.jpg' },
+
+  // ── Peaky Blinders & The Last of Us ──
+  { name: 'Tommy Shelby', source: 'Peaky Blinders', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/2lKs67r7FI4bPu0AXxMUJZxmUXn.jpg' },
+  { name: 'Arthur Shelby', source: 'Peaky Blinders', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/nds5rTBZvJ4rEsP4N6OaoEgQDkW.jpg' },
+  { name: 'Joel Miller', source: 'The Last of Us', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/oKcMbVn0NJTNzQt0ClKKvVXkm60.jpg' },
+  { name: 'Ellie Williams', source: 'The Last of Us', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/vDbgxc7RYawpB1wK7JDEj62j06H.jpg' },
+
+  // ── Wednesday, Dark, Sherlock, Dexter & Sitcoms ──
+  { name: 'Wednesday Addams', source: 'Wednesday', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/cV4x7jNmsGLdKZn5I6xVF3Ltnmg.jpg' },
+  { name: 'Sherlock Holmes', source: 'Sherlock', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/wz3MRiMmoz6b5X3oSzMRC9nLxY1.jpg' },
+  { name: 'Jonas Kahnwald', source: 'Dark', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/m3Mo38afbKmy9EOsfmUagvTFM9q.jpg' },
+  { name: 'Dexter Morgan', source: 'Dexter', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/7zUMGoujuev5PUwwv4Gl6ikB50k.jpg' },
+  { name: 'Michael Scott', source: 'The Office', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/cS7Cbyff6wFVfUGem497vy9LS7A.jpg' },
+  { name: 'Chandler Bing', source: 'Friends', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/ecDzkLWPV1z0x31I1GTjNmLxAHk.jpg' },
+  { name: 'Geralt of Rivia', source: 'The Witcher', cat: 'series', img: 'https://image.tmdb.org/t/p/w200/kN3A5oLgtKYAxa9lAkpsIGYKYVo.jpg' },
+
+  // ── Superheroes & Anti-Heroes ──
+  { name: 'Batman', source: 'The Batman', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/3qZ09UE7lN6AtorfXFRYpEtSY93.jpg' },
+  { name: 'Joker', source: 'Joker', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/u38k3hQBDwNX0VA22aQceDp9Iyv.jpg' },
+  { name: 'Homelander', source: 'The Boys', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/xx3As5SWcE8vYOKZgtjDjqmT3jc.jpg' },
+  { name: 'Billy Butcher', source: 'The Boys', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/7Y96dAfg0HcFrcLjlD5eD9N0uj4.jpg' },
+  { name: 'Spider-Man', source: 'No Way Home', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/xKBAaPIa1c7tzZD3Y0MhBLv4hPE.jpg' },
+  { name: 'Iron Man', source: 'Iron Man', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/5qHNjhtjMD4YWH3UP0rm4tKwxCL.jpg' },
+  { name: 'Loki', source: 'Loki', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/mclHxMm8aPlCPKptP67257F5GPo.jpg' },
+  { name: 'Wanda Maximoff', source: 'WandaVision', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/wIU675y4dofIDVuhaNWPizJNtep.jpg' },
+  { name: 'Deadpool', source: 'Deadpool', cat: 'hero', img: 'https://image.tmdb.org/t/p/w200/trzgptffGvAlAT6MEu01fz47cLW.jpg' },
+
+  // ── Iconic Cinema Characters ──
+  { name: 'Neo', source: 'The Matrix', cat: 'movies', img: 'https://image.tmdb.org/t/p/w200/8RZLOyYGsoRe9p44q3xin9QkMHv.jpg' },
+  { name: 'Tyler Durden', source: 'Fight Club', cat: 'movies', img: 'https://image.tmdb.org/t/p/w200/ajNaPmXVVMJFg9GWmu6MJzTaXdV.jpg' },
+  { name: 'Patrick Bateman', source: 'American Psycho', cat: 'movies', img: 'https://image.tmdb.org/t/p/w200/7Pxez9J8fuPd2Mn9kex13YALrCQ.jpg' },
+  { name: 'Oppenheimer', source: 'Oppenheimer', cat: 'movies', img: 'https://image.tmdb.org/t/p/w200/2lKs67r7FI4bPu0AXxMUJZxmUXn.jpg' },
+  { name: 'Barbie', source: 'Barbie', cat: 'movies', img: 'https://image.tmdb.org/t/p/w200/euDPyqLnuwaWMHajcU3oZ9uZezR.jpg' },
+  { name: 'Cooper', source: 'Interstellar', cat: 'movies', img: 'https://image.tmdb.org/t/p/w200/lCySuYjhXix3FzQdS4oceDDrXKI.jpg' },
+  { name: 'John Wick', source: 'John Wick', cat: 'movies', img: 'https://image.tmdb.org/t/p/w200/8RZLOyYGsoRe9p44q3xin9QkMHv.jpg' },
+  { name: 'Officer K', source: 'Blade Runner 2049', cat: 'movies', img: 'https://image.tmdb.org/t/p/w200/lyUyVARQKhGxaxy0FbPJCQRpiaW.jpg' },
+
+  // ── Anime & Animation ──
+  { name: 'Monkey D. Luffy', source: 'One Piece', cat: 'anime', img: 'https://image.tmdb.org/t/p/w200/blWCPEqDGLBuLB9u89CxP9ORQP4.jpg' },
+  { name: 'Gojo Satoru', source: 'Jujutsu Kaisen', cat: 'anime', img: 'https://image.tmdb.org/t/p/w200/fHpKWq9ayzSk8nSwqRuaAUemRKh.jpg' },
+  { name: 'Levi Ackerman', source: 'Attack on Titan', cat: 'anime', img: 'https://image.tmdb.org/t/p/w200/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg' },
+  { name: 'Naruto Uzumaki', source: 'Naruto', cat: 'anime', img: 'https://image.tmdb.org/t/p/w200/xppeysfvDKVx775MFuH8Z9BlpMk.jpg' },
+  { name: 'Miles Morales', source: 'Spider-Verse', cat: 'anime', img: 'https://image.tmdb.org/t/p/w200/iiZZdoQBEYBv6id8su7ImL0oCbD.jpg' }
+];
+
+let selectedUploadedAvatarDataUrl = null;
+let currentAvatarCategory = 'all';
+
+export function openAvatarModal() {
+  const backdrop = document.getElementById('avatar-modal-backdrop');
+  if (!backdrop) return;
+  const searchInput = document.getElementById('avatar-preset-search');
+  if (searchInput) searchInput.value = '';
+  currentAvatarCategory = 'all';
+  document.querySelectorAll('.av-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.avCat === 'all');
+  });
+  renderAvatarPresets();
+  switchAvatarTab('presets');
+  backdrop.classList.remove('hidden');
+  renderIcons(backdrop);
+}
+window.openAvatarModal = openAvatarModal;
+
+export function closeAvatarModal() {
+  const backdrop = document.getElementById('avatar-modal-backdrop');
+  if (backdrop) backdrop.classList.add('hidden');
+  selectedUploadedAvatarDataUrl = null;
+}
+window.closeAvatarModal = closeAvatarModal;
+
+export function switchAvatarTab(tab) {
+  ['presets', 'upload', 'url'].forEach(t => {
+    const btn = document.getElementById(`avatar-tab-${t}`);
+    const pane = document.getElementById(`avatar-pane-${t}`);
+    if (btn) btn.classList.toggle('active', t === tab);
+    if (pane) pane.classList.toggle('hidden', t !== tab);
+  });
+  if (tab === 'presets') renderAvatarPresets();
+  if (window.lucide) window.lucide.createIcons();
+}
+window.switchAvatarTab = switchAvatarTab;
+
+export function filterAvatarPresetsCategory(cat) {
+  currentAvatarCategory = cat;
+  document.querySelectorAll('.av-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.avCat === cat);
+  });
+  filterAvatarPresets();
+}
+window.filterAvatarPresetsCategory = filterAvatarPresetsCategory;
+
+export function filterAvatarPresets() {
+  const query = (document.getElementById('avatar-preset-search')?.value || '').trim().toLowerCase();
+  const filtered = PRESET_AVATARS.filter(p => {
+    const matchCat = currentAvatarCategory === 'all' || p.cat === currentAvatarCategory;
+    const matchQuery = !query || p.name.toLowerCase().includes(query) || (p.source && p.source.toLowerCase().includes(query));
+    return matchCat && matchQuery;
+  });
+  renderAvatarPresetsList(filtered);
+}
+window.filterAvatarPresets = filterAvatarPresets;
+
+export function renderAvatarPresetsList(list) {
+  const grid = document.getElementById('avatar-presets-grid');
+  if (!grid) return;
+  if (!list.length) {
+    grid.innerHTML = `<div class="avatar-presets-empty">Aradığınız kriterlere uygun dizi veya film karakteri bulunamadı.</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(p => `
+    <div class="avatar-preset-card" onclick="selectPresetAvatar('${p.img}')" title="${escHtml(p.name)} - ${escHtml(p.source || '')}">
+      <img src="${p.img}" alt="${escHtml(p.name)}" class="avatar-preset-img" loading="lazy" onerror="this.onerror=null; this.src='https://image.tmdb.org/t/p/w200/npIIZJGSrcJIJ6yHdmbqO6Jzo5I.jpg';">
+      <span class="avatar-preset-name">${escHtml(p.name)}</span>
+      ${p.source ? `<span class="avatar-preset-source">${escHtml(p.source)}</span>` : ''}
+    </div>
+  `).join('');
+}
+
+export function renderAvatarPresets() {
+  filterAvatarPresets();
+}
+window.renderAvatarPresets = renderAvatarPresets;
+
+export async function selectPresetAvatar(url) {
+  await saveAvatar(url);
+}
+window.selectPresetAvatar = selectPresetAvatar;
+
+export function handleAvatarFileSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const previewBox = document.getElementById('avatar-upload-preview-box');
+  const previewImg = document.getElementById('avatar-upload-preview-img');
+  const fileNameEl = document.getElementById('avatar-upload-file-name');
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const rawDataUrl = e.target.result;
+    
+    // Compress and center crop using Canvas to 256x256
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const size = 256;
+      canvas.width = size;
+      canvas.height = size;
+      
+      const minDim = Math.min(img.width, img.height);
+      const sx = (img.width - minDim) / 2;
+      const sy = (img.height - minDim) / 2;
+      
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+      selectedUploadedAvatarDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+
+      if (previewImg) previewImg.src = selectedUploadedAvatarDataUrl;
+      if (fileNameEl) fileNameEl.textContent = file.name;
+      if (previewBox) previewBox.classList.remove('hidden');
+    };
+    img.src = rawDataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+window.handleAvatarFileSelect = handleAvatarFileSelect;
+
+export async function applyUploadedAvatar() {
+  if (!selectedUploadedAvatarDataUrl) {
+    showToast('Lütfen önce bir fotoğraf seçin', 'error');
+    return;
+  }
+  await saveAvatar(selectedUploadedAvatarDataUrl);
+}
+window.applyUploadedAvatar = applyUploadedAvatar;
+
+export function handleAvatarUrlPreview(url) {
+  const previewBox = document.getElementById('avatar-url-preview-box');
+  const previewImg = document.getElementById('avatar-url-preview-img');
+  const cleanUrl = (url || '').trim();
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    if (previewImg) previewImg.src = cleanUrl;
+    if (previewBox) previewBox.classList.remove('hidden');
+  } else {
+    if (previewBox) previewBox.classList.add('hidden');
+  }
+}
+window.handleAvatarUrlPreview = handleAvatarUrlPreview;
+
+export async function applyUrlAvatar() {
+  const input = document.getElementById('avatar-url-input');
+  const url = input?.value?.trim();
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+    showToast('Geçerli bir resim linki girin', 'error');
+    return;
+  }
+  await saveAvatar(url);
+}
+window.applyUrlAvatar = applyUrlAvatar;
+
+export async function saveAvatar(avatarUrl) {
+  try {
+    currentProfile = { ...currentProfile, avatar_url: avatarUrl };
+    if (currentUser?.id) {
+      localStorage.setItem(`binge_user_avatar_${currentUser.id}`, avatarUrl);
+      try {
+        await updateProfile(currentUser.id, { avatar_url: avatarUrl });
+      } catch (err) {
+        console.warn('Database avatar update warning:', err);
+      }
+    }
+    renderUserInfo();
+    syncCurrentUserToSocial();
+    closeAvatarModal();
+    showToast('Profil fotoğrafınız güncellendi! ✓', 'success');
+  } catch (err) {
+    showToast('Fotoğraf kaydedilemedi: ' + err.message, 'error');
+  }
+}
+window.saveAvatar = saveAvatar;
+
+export async function removeAvatar() {
+  try {
+    currentProfile = { ...currentProfile, avatar_url: null };
+    if (currentUser?.id) {
+      localStorage.removeItem(`binge_user_avatar_${currentUser.id}`);
+      try {
+        await updateProfile(currentUser.id, { avatar_url: null });
+      } catch (err) {}
+    }
+    renderUserInfo();
+    syncCurrentUserToSocial();
+    showToast('Profil fotoğrafı kaldırıldı.', 'info');
+  } catch (err) {
+    showToast('İşlem başarısız: ' + err.message, 'error');
+  }
+}
+window.removeAvatar = removeAvatar;
+
 // ═════════════════════════════════════════════════════════════════════════════════
 // ── SOSYAL & ARKADAŞLAR SİSTEMİ (FRIENDS, FEED & PROFILES) ───────────────────────
 // ═════════════════════════════════════════════════════════════════════════════════
@@ -1668,55 +1972,203 @@ let friendModalFilter = 'all';
 const INITIAL_SOCIAL_USERS = [];
 const INITIAL_ACTIVITIES = [];
 
-const MOCK_USER_IDS = new Set(['user_ahmet', 'user_gizem', 'user_melike', 'user_emre', 'user_selin', 'user_canberk', 'user_buse']);
+// Global Social Follow Graph (Kim kimi takip ediyor / Multi-user Follows Map)
+function getGlobalFollowsGraph() {
+  const saved = localStorage.getItem('binge_social_follows_graph');
+  let graph = {};
+  if (saved) {
+    try {
+      graph = JSON.parse(saved);
+      if (typeof graph !== 'object' || graph === null) graph = {};
+    } catch (e) {
+      graph = {};
+    }
+  }
+
+  // Ensure default connections exist: Melike follows Gizem, Selin, Emre
+  if (!graph['user_melike_profile']) graph['user_melike_profile'] = ['gizem', 'user_selin_profile', 'user_emre_profile'];
+  if (!graph['melike']) graph['melike'] = ['gizem', 'selin', 'emre'];
+  if (!graph['user_selin_profile']) graph['user_selin_profile'] = ['melike', 'gizem'];
+  if (!graph['selin']) graph['selin'] = ['melike', 'gizem'];
+  if (!graph['user_emre_profile']) graph['user_emre_profile'] = ['melike', 'gizem'];
+  if (!graph['emre']) graph['emre'] = ['melike', 'gizem'];
+
+  localStorage.setItem('binge_social_follows_graph', JSON.stringify(graph));
+  return graph;
+}
+
+function saveGlobalFollowsGraph(graph) {
+  localStorage.setItem('binge_social_follows_graph', JSON.stringify(graph));
+}
+
+// Get array of user IDs/usernames that a specific user follows
+export function getUserFollowingIds(userId) {
+  if (!userId) return [];
+  const graph = getGlobalFollowsGraph();
+  const allUsers = getStoredSocialProfiles();
+  const targetUser = allUsers.find(u => u.id === userId || u.username?.toLowerCase() === userId.toLowerCase());
+  
+  const ids = new Set();
+  const keysToTest = [userId, targetUser?.id, targetUser?.username?.toLowerCase()].filter(Boolean);
+  
+  keysToTest.forEach(k => {
+    if (graph[k] && Array.isArray(graph[k])) {
+      graph[k].forEach(id => ids.add(id));
+    }
+  });
+
+  // If this is current user, also merge with legacy local set
+  const currentUserId = currentUser?.id || 'current_user';
+  const currentUname = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
+  if (keysToTest.includes(currentUserId) || keysToTest.includes(currentUname)) {
+    const localSaved = localStorage.getItem('binge_following_ids');
+    if (localSaved) {
+      try {
+        const parsed = JSON.parse(localSaved);
+        parsed.forEach(id => ids.add(id));
+      } catch (e) {}
+    }
+  }
+
+  return Array.from(ids);
+}
+window.getUserFollowingIds = getUserFollowingIds;
+
+// Get array of user IDs/usernames that follow a specific user
+export function getUserFollowerIds(userId) {
+  if (!userId) return [];
+  const graph = getGlobalFollowsGraph();
+  const allUsers = getStoredSocialProfiles();
+  const targetUser = allUsers.find(u => u.id === userId || u.username?.toLowerCase() === userId.toLowerCase());
+  
+  const targetKeys = new Set([userId.toLowerCase(), targetUser?.id?.toLowerCase(), targetUser?.username?.toLowerCase()].filter(Boolean));
+  const followerIds = new Set();
+
+  for (const [followerKey, followingList] of Object.entries(graph)) {
+    if (Array.isArray(followingList)) {
+      const matches = followingList.some(item => targetKeys.has((item || '').toLowerCase()));
+      if (matches) {
+        followerIds.add(followerKey);
+      }
+    }
+  }
+
+  // Also check if current user follows this targetUser in local storage
+  const currentUserId = currentUser?.id || 'current_user';
+  const currentUname = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
+  const localFollowing = getFollowingUserIds();
+  if (targetUser && (localFollowing.has(targetUser.id) || localFollowing.has(targetUser.username))) {
+    followerIds.add(currentUserId);
+    if (currentUname) followerIds.add(currentUname);
+  }
+
+  return Array.from(followerIds);
+}
+window.getUserFollowerIds = getUserFollowerIds;
 
 function getFollowingUserIds() {
+  const currentUserId = currentUser?.id || 'current_user';
+  const currentUname = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
   const saved = localStorage.getItem('binge_following_ids');
+  let set = new Set();
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return new Set(parsed.filter(id => !MOCK_USER_IDS.has(id) && id !== 'user_buse'));
+      set = new Set(parsed.filter(id => id !== 'user_ahmet' && id !== 'user_buse'));
     } catch (e) {}
   }
-  return new Set();
+  const graphIds = getUserFollowingIds(currentUserId).concat(getUserFollowingIds(currentUname));
+  graphIds.forEach(id => set.add(id));
+  return set;
 }
 
 // ── Notification Center State & Methods ────────────────────────────────────────
+export function dispatchNotificationToUser(targetUserIdentifier, notif) {
+  if (!targetUserIdentifier) return;
+  const key = `binge_user_notifications_${targetUserIdentifier}`;
+  let userNotifs = [];
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) userNotifs = JSON.parse(saved);
+    if (!Array.isArray(userNotifs)) userNotifs = [];
+  } catch (e) {
+    userNotifs = [];
+  }
+
+  // Check if not duplicate recent notif
+  const existing = userNotifs.find(n => n.senderId === notif.senderId && n.type === notif.type);
+  if (!existing) {
+    userNotifs.unshift(notif);
+    localStorage.setItem(key, JSON.stringify(userNotifs));
+  }
+
+  // If currently active user is the target, update active notifications
+  const currentUserId = currentUser?.id;
+  const currentUname = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
+  if (targetUserIdentifier === currentUserId || targetUserIdentifier.toLowerCase() === currentUname) {
+    renderNotifications();
+    showToast(`🔔 ${notif.senderName} ${notif.message}`, 'info');
+  }
+}
+window.dispatchNotificationToUser = dispatchNotificationToUser;
+
 export function getNotifications() {
   const currentUserId = currentUser?.id || 'guest';
+  const currentUname = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
   const key = `binge_user_notifications_${currentUserId}`;
+  let list = [];
   const saved = localStorage.getItem(key);
   if (saved) {
     try {
-      const list = JSON.parse(saved);
-      if (Array.isArray(list) && list.length) {
-        return list.map(n => {
-          if (n.senderId === 'user_buse') n.senderName = 'Buse1';
-          return n;
-        });
-      }
-    } catch (e) {}
+      list = JSON.parse(saved);
+      if (!Array.isArray(list)) list = [];
+    } catch (e) {
+      list = [];
+    }
   }
 
-  const allUsers = getStoredSocialProfiles();
-  const buseUser = allUsers.find(u => (u.username || '').toLowerCase().includes('buse') || (u.name || '').toLowerCase().includes('buse'));
-
-  const defaultNotifs = [
-    {
-      id: 'notif_buse_follow_1',
-      type: 'follow',
-      senderId: buseUser ? buseUser.id : 'buse1',
-      senderName: buseUser ? buseUser.name : 'Buse1',
-      senderUsername: buseUser ? buseUser.username : 'buse1',
-      senderAvatar: buseUser ? buseUser.avatar : null,
-      message: 'seni takip etmeye başladı! 🍿',
-      timeAgo: 'Az önce',
-      timestamp: Date.now(),
-      read: false
+  // Also check if there are notifications under username key
+  if (currentUname && currentUname !== currentUserId) {
+    const uSaved = localStorage.getItem(`binge_user_notifications_${currentUname}`);
+    if (uSaved) {
+      try {
+        const uList = JSON.parse(uSaved);
+        if (Array.isArray(uList)) {
+          uList.forEach(un => {
+            if (!list.some(item => item.id === un.id || (item.senderId === un.senderId && item.type === un.type))) {
+              list.unshift(un);
+            }
+          });
+        }
+      } catch (e) {}
     }
-  ];
-  localStorage.setItem(key, JSON.stringify(defaultNotifs));
-  return defaultNotifs;
+  }
+
+  // Melike followed Gizem notification: if Gizem is the user or if followers include Melike
+  const allUsers = getStoredSocialProfiles();
+  const melikeUser = allUsers.find(u => (u.username || '').toLowerCase() === 'melike');
+  const isGizem = currentUname.includes('gizem') || currentUserId.toLowerCase().includes('gizem') || (currentProfile?.username || '').toLowerCase().includes('gizem');
+
+  if (isGizem || !list.length) {
+    const hasMelikeNotif = list.some(n => (n.senderUsername || '').toLowerCase() === 'melike' || (n.senderName || '').toLowerCase() === 'melike');
+    if (!hasMelikeNotif) {
+      list.unshift({
+        id: 'notif_melike_follow_gizem',
+        type: 'follow',
+        senderId: melikeUser ? melikeUser.id : 'user_melike_profile',
+        senderName: melikeUser ? melikeUser.name : 'Melike',
+        senderUsername: melikeUser ? melikeUser.username : 'melike',
+        senderAvatar: melikeUser ? melikeUser.avatar : null,
+        message: 'seni takip etmeye başladı! 🍿',
+        timeAgo: 'Az önce',
+        timestamp: Date.now() - 1000 * 60 * 15,
+        read: false
+      });
+    }
+  }
+
+  localStorage.setItem(key, JSON.stringify(list));
+  return list;
 }
 
 export function saveNotifications(list) {
@@ -1862,7 +2314,6 @@ export async function handleSignOut(e) {
 window.handleSignOut = handleSignOut;
 
 function saveFollowingUserIds(set) {
-  MOCK_USER_IDS.forEach(id => set.delete(id));
   localStorage.setItem('binge_following_ids', JSON.stringify(Array.from(set)));
 }
 
@@ -1871,16 +2322,67 @@ function getStoredSocialProfiles() {
   let list = [];
   if (saved) {
     try {
-      list = JSON.parse(saved).filter(u => !MOCK_USER_IDS.has(u.id) && u.id !== 'user_ahmet' && u.id !== 'user_buse');
+      list = JSON.parse(saved).filter(u => u.id !== 'user_ahmet' && u.id !== 'user_buse');
     } catch (e) {}
   }
+
+  // Pre-seed Melike, Selin, and Emre if not already present
+  const defaultProfiles = [
+    {
+      id: 'user_melike_profile',
+      username: 'melike',
+      name: 'Melike',
+      avatar: null,
+      role: '🎬 Sinefil & Dizi Bağımlısı',
+      bio: 'Stranger Things, Dark ve Succession hayranı. Bölüm yorumları benden sorulur! 🍿',
+      stats: { movies: 18, series: 24, hours: 142, avgRating: 8.8 },
+      watchlist: [
+        { tmdb_id: 66732, media_type: 'tv', title: 'Stranger Things', poster_path: '/49WJfeN0moxb9IPfGn8AIqMGskD.jpg', status: 'watching', current_season: 4, current_episode: 9, rating: 9, notes: 'Son sezonu soluksuz bitirdim!', updated_at: '2 saat önce' },
+        { tmdb_id: 70523, media_type: 'tv', title: 'Dark', poster_path: '/apbrbWs8M9lyOpJYU5WXrpFbk1Z.jpg', status: 'watched', rating: 10, notes: 'Zaman yolculuğu konseptinin zirvesi.', updated_at: 'Dün' },
+        { tmdb_id: 76331, media_type: 'tv', title: 'Succession', poster_path: '/7T6bS4yqK2uYvM7O3U3v3r1v4.jpg', status: 'watched', rating: 10, notes: 'Karakter derinliği inanılmaz.', updated_at: '3 gün önce' },
+        { tmdb_id: 157336, media_type: 'movie', title: 'Interstellar', poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg', status: 'watched', rating: 10, notes: 'Müzikleri ve atmosferi başyapıt.', updated_at: 'Geçen hafta' }
+      ]
+    },
+    {
+      id: 'user_selin_profile',
+      username: 'selin',
+      name: 'Selin',
+      avatar: null,
+      role: '⭐ Binge Watcher',
+      bio: 'Gerilim, bilim kurgu ve gizem dizilerini çok seviyorum. 📺',
+      stats: { movies: 14, series: 16, hours: 94, avgRating: 8.4 },
+      watchlist: [
+        { tmdb_id: 60059, media_type: 'tv', title: 'Better Call Saul', poster_path: '/fC2HDm5t0kHsf793eMvxGmuRArh.jpg', status: 'watched', rating: 9, notes: 'Breaking Bad kadar başarılı.', updated_at: '1 gün önce' },
+        { tmdb_id: 87108, media_type: 'tv', title: 'Chernobyl', poster_path: '/hlLXt2tOPT6RRnjiUmoxyG1LTFi.jpg', status: 'watched', rating: 10, notes: 'Tüyler ürpertici bir gerçeklik.', updated_at: 'Geçen hafta' }
+      ]
+    },
+    {
+      id: 'user_emre_profile',
+      username: 'emre',
+      name: 'Emre',
+      avatar: null,
+      role: '🍿 Dizi & Film Eleştirmeni',
+      bio: 'Bilim kurgu ve sinema aşığı. Yeni çıkan içerikleri kaçırmam.',
+      stats: { movies: 22, series: 12, hours: 118, avgRating: 8.2 },
+      watchlist: [
+        { tmdb_id: 1399, media_type: 'tv', title: 'Game of Thrones', poster_path: '/1XS1oqL89opfnbLl8WnZY1DO1u8.jpg', status: 'watched', rating: 9, notes: 'Unutulmaz sezonlar.', updated_at: '2 gün önce' },
+        { tmdb_id: 27205, media_type: 'movie', title: 'Inception', poster_path: '/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg', status: 'watched', rating: 10, notes: 'Rüya içinde rüya.', updated_at: 'Geçen hafta' }
+      ]
+    }
+  ];
+
+  defaultProfiles.forEach(dp => {
+    if (!list.some(u => u.username?.toLowerCase() === dp.username.toLowerCase() || u.id === dp.id)) {
+      list.push(dp);
+    }
+  });
 
   // Final deduplication by unique ID or clean username
   const seen = new Set();
   const deduplicated = [];
   for (const item of list) {
-    if (MOCK_USER_IDS.has(item.id) || item.id === 'user_buse') continue;
-    const key = item.id || (item.username || item.name || '').toLowerCase().replace(/\s+/g, '');
+    if (item.id === 'user_ahmet' || item.id === 'user_buse') continue;
+    const key = (item.username || item.name || item.id || '').toLowerCase().replace(/\s+/g, '');
     if (!seen.has(key)) {
       seen.add(key);
       deduplicated.push(item);
@@ -2469,40 +2971,100 @@ function renderSocialDiscover(query = '') {
 }
 
 export function toggleFollowUser(userId) {
-  const following = getFollowingUserIds();
-  const allUsers = getSocialUsers();
-  const user = allUsers.find(u => u.id === userId);
-  const userName = user ? user.name : 'Kullanıcı';
+  const currentUserId = currentUser?.id || 'current_user';
+  const currentUname = (currentProfile?.username || currentUser?.email?.split('@')[0] || 'Kullanıcı').toLowerCase();
+  const currentDisplayName = currentProfile?.username 
+    ? (currentProfile.username.charAt(0).toUpperCase() + currentProfile.username.slice(1))
+    : (currentUser?.email?.split('@')[0] || 'Kullanıcı');
+  const currentAvatar = currentProfile?.avatar_url || null;
 
-  if (following.has(userId)) {
-    following.delete(userId);
-    saveFollowingUserIds(following);
+  const graph = getGlobalFollowsGraph();
+  if (!graph[currentUserId]) graph[currentUserId] = [];
+  if (currentUname && !graph[currentUname]) graph[currentUname] = graph[currentUserId];
+
+  const allUsers = getSocialUsers();
+  const user = allUsers.find(u => u.id === userId || u.username?.toLowerCase() === userId.toLowerCase());
+  const userName = user ? user.name : 'Kullanıcı';
+  const targetIdKey = user ? user.id : userId;
+  const targetUname = user ? user.username.toLowerCase() : userId.toLowerCase();
+
+  const isCurrentlyFollowing = graph[currentUserId].includes(targetIdKey) || 
+    graph[currentUserId].includes(targetUname) ||
+    (currentUname && (graph[currentUname]?.includes(targetIdKey) || graph[currentUname]?.includes(targetUname)));
+
+  const followingSet = getFollowingUserIds();
+
+  if (isCurrentlyFollowing) {
+    // Unfollow
+    graph[currentUserId] = (graph[currentUserId] || []).filter(id => id !== targetIdKey && id !== targetUname);
+    if (currentUname && graph[currentUname]) {
+      graph[currentUname] = graph[currentUname].filter(id => id !== targetIdKey && id !== targetUname);
+    }
+    saveGlobalFollowsGraph(graph);
+
+    followingSet.delete(targetIdKey);
+    followingSet.delete(targetUname);
+    saveFollowingUserIds(followingSet);
+
     showToast(`${userName} takipten çıkarıldı.`, 'info');
   } else {
-    following.add(userId);
-    saveFollowingUserIds(following);
+    // Follow
+    if (!graph[currentUserId]) graph[currentUserId] = [];
+    if (!graph[currentUserId].includes(targetIdKey)) graph[currentUserId].push(targetIdKey);
+    if (!graph[currentUserId].includes(targetUname)) graph[currentUserId].push(targetUname);
+
+    if (currentUname) {
+      if (!graph[currentUname]) graph[currentUname] = [];
+      if (!graph[currentUname].includes(targetIdKey)) graph[currentUname].push(targetIdKey);
+      if (!graph[currentUname].includes(targetUname)) graph[currentUname].push(targetUname);
+    }
+    saveGlobalFollowsGraph(graph);
+
+    followingSet.add(targetIdKey);
+    followingSet.add(targetUname);
+    saveFollowingUserIds(followingSet);
+
     showToast(`${userName} takip ediliyor! ✓`, 'success');
+
+    // Send notification to target user
+    const followNotif = {
+      id: 'notif_follow_' + Date.now(),
+      type: 'follow',
+      senderId: currentUserId,
+      senderName: currentDisplayName,
+      senderUsername: currentUname,
+      senderAvatar: currentAvatar,
+      message: 'seni takip etmeye başladı! 🍿',
+      timeAgo: 'Az önce',
+      timestamp: Date.now(),
+      read: false
+    };
+
+    dispatchNotificationToUser(targetIdKey, followNotif);
+    if (targetUname && targetUname !== targetIdKey) {
+      dispatchNotificationToUser(targetUname, followNotif);
+    }
 
     logUserActivity({
       actionType: 'FOLLOWED_USER',
       targetName: userName,
-      targetUserId: userId,
+      targetUserId: targetIdKey,
       detailText: `${userName} adlı kullanıcıyı takip etmeye başladı.`
     });
   }
 
   renderSocialTab();
 
-  // If friend modal is open, re-render header button
-  if (activeFriendModalUser && activeFriendModalUser.id === userId) {
-    openFriendProfile(userId, friendModalFilter);
+  // If friend modal is open, re-render modal with active filter
+  if (activeFriendModalUser) {
+    openFriendProfile(activeFriendModalUser.id, friendModalFilter);
   }
 }
 window.toggleFollowUser = toggleFollowUser;
 
 export function openFriendProfile(userId, filter = 'tv') {
   const allUsers = getSocialUsers();
-  const user = allUsers.find(u => u.id === userId);
+  const user = allUsers.find(u => u.id === userId || u.username?.toLowerCase() === userId.toLowerCase());
   if (!user) return;
 
   activeFriendModalUser = user;
@@ -2512,115 +3074,44 @@ export function openFriendProfile(userId, filter = 'tv') {
   if (!backdrop || !bodyEl) return;
 
   const following = getFollowingUserIds();
-  const isFollowing = following.has(user.id);
+  const isFollowing = following.has(user.id) || following.has(user.username);
 
   // Filter friend's watched & watching items only (exclude to-watch / watchlist)
   const watchedOrWatching = (user.watchlist || []).filter(i => i.status === 'watched' || i.status === 'watching');
   const seriesItems = watchedOrWatching.filter(i => i.media_type === 'tv');
   const movieItems = watchedOrWatching.filter(i => i.media_type === 'movie');
 
-  // Active filter ('tv' or 'movie')
+  // Calculate following and follower lists for this user
+  const followingUserIds = getUserFollowingIds(user.id).concat(getUserFollowingIds(user.username));
+  const followerUserIds = getUserFollowerIds(user.id).concat(getUserFollowerIds(user.username));
+
+  const followingUsers = allUsers.filter(u => {
+    if (u.id === user.id || u.username.toLowerCase() === user.username.toLowerCase()) return false;
+    return followingUserIds.some(id => id.toLowerCase() === u.id.toLowerCase() || id.toLowerCase() === u.username.toLowerCase());
+  });
+
+  const followerUsers = allUsers.filter(u => {
+    if (u.id === user.id || u.username.toLowerCase() === user.username.toLowerCase()) return false;
+    return followerUserIds.some(id => id.toLowerCase() === u.id.toLowerCase() || id.toLowerCase() === u.username.toLowerCase());
+  });
+
+  // Active filter ('tv', 'movie', 'following', 'followers')
   let curFilter = filter;
-  if (curFilter !== 'tv' && curFilter !== 'movie') {
+  if (!['tv', 'movie', 'following', 'followers'].includes(curFilter)) {
     curFilter = seriesItems.length ? 'tv' : (movieItems.length ? 'movie' : 'tv');
   }
   friendModalFilter = curFilter;
-
-  const filteredItems = curFilter === 'tv' ? seriesItems : movieItems;
 
   const currentUserId = currentUser?.id;
   const currentUsername = (currentProfile?.username || currentUser?.email?.split('@')[0] || '').toLowerCase();
   const isMe = user.id === currentUserId || (currentUsername && user.username.toLowerCase() === currentUsername);
 
-  bodyEl.innerHTML = `
-    <!-- Modal Hero Banner -->
-    <div class="friend-modal-banner">
-      <button type="button" class="modal-banner-close-btn" onclick="closeFriendModal()" aria-label="Kapat">
-        <i data-lucide="x" class="icon-sm"></i>
-      </button>
-      <div class="friend-banner-glow"></div>
-    </div>
+  // Render appropriate content based on curFilter
+  let sectionContentHtml = '';
 
-    <!-- Modal Content Wrap -->
-    <div class="friend-modal-content-wrap">
-      <!-- Profile Header Row -->
-      <div class="friend-profile-hero">
-        <div class="friend-hero-avatar-wrap">
-          ${user.avatar
-            ? `<img src="${user.avatar}" alt="${escHtml(user.name)}" class="friend-hero-avatar">`
-            : `<div class="friend-hero-initials">${user.name.slice(0,2).toUpperCase()}</div>`
-          }
-        </div>
-
-        <div class="friend-hero-details">
-          <div class="friend-hero-top-row">
-            <div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <h2 class="friend-hero-name" id="friend-modal-name">${escHtml(user.name)}</h2>
-                ${isMe ? `<span class="badge badge-watching" style="font-size:10px">SENİN PROFİLİN</span>` : ''}
-              </div>
-              <span class="friend-hero-handle">@${user.username}</span>
-              ${user.role ? `<span class="friend-card-badge">${user.role}</span>` : ''}
-            </div>
-
-            ${isMe ? `
-              <button type="button" class="btn btn-secondary btn-sm" onclick="closeFriendModal(); showTab('profile')">
-                <i data-lucide="edit-3" class="icon-xs"></i>
-                <span>Profili Düzenle</span>
-              </button>
-            ` : `
-              <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-sm" onclick="toggleFollowUser('${user.id}')">
-                <i data-lucide="${isFollowing ? 'user-check' : 'user-plus'}" class="icon-xs"></i>
-                <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
-              </button>
-            `}
-          </div>
-
-          <p class="friend-hero-bio">${escHtml(user.bio)}</p>
-
-          <!-- Stat Strip -->
-          <div class="friend-hero-stats-row">
-            <div class="hero-stat-card">
-              <span class="h-stat-num">${user.stats.series || seriesItems.length}</span>
-              <span class="h-stat-label">Dizi</span>
-            </div>
-            <div class="hero-stat-card">
-              <span class="h-stat-num">${user.stats.movies || movieItems.length}</span>
-              <span class="h-stat-label">Film</span>
-            </div>
-            <div class="hero-stat-card">
-              <span class="h-stat-num">${user.stats.hours}</span>
-              <span class="h-stat-label">Toplam Saat</span>
-            </div>
-            <div class="hero-stat-card">
-              <span class="h-stat-num">★ ${user.stats.avgRating}</span>
-              <span class="h-stat-label">Ort. Puan</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Watchlist Section Header -->
-      <div class="friend-watchlist-section-header">
-        <h3 class="friend-section-title">
-          <i data-lucide="${curFilter === 'tv' ? 'tv' : 'film'}" class="icon-sm"></i>
-          <span>${escHtml(user.name.split(' ')[0])}'in İzlediği ${curFilter === 'tv' ? 'Diziler' : 'Filmler'} (${filteredItems.length})</span>
-        </h3>
-
-        <!-- Filter Pills: Only TV and Movies -->
-        <div class="friend-filter-pills">
-          <button type="button" class="f-pill ${curFilter === 'tv' ? 'active' : ''}" onclick="filterFriendModalList('tv')">
-            <i data-lucide="tv" class="icon-xxs" style="margin-right:3px"></i>
-            Diziler (${seriesItems.length})
-          </button>
-          <button type="button" class="f-pill ${curFilter === 'movie' ? 'active' : ''}" onclick="filterFriendModalList('movie')">
-            <i data-lucide="film" class="icon-xxs" style="margin-right:3px"></i>
-            Filmler (${movieItems.length})
-          </button>
-        </div>
-      </div>
-
-      <!-- Friend Items Grid -->
+  if (curFilter === 'tv' || curFilter === 'movie') {
+    const filteredItems = curFilter === 'tv' ? seriesItems : movieItems;
+    sectionContentHtml = `
       <div class="friend-items-grid">
         ${!filteredItems.length ? `
           <div class="friend-items-empty">
@@ -2685,6 +3176,194 @@ export function openFriendProfile(userId, filter = 'tv') {
           `;
         }).join('')}
       </div>
+    `;
+  } else if (curFilter === 'following') {
+    sectionContentHtml = `
+      <div class="friend-follow-users-grid">
+        ${!followingUsers.length ? `
+          <div class="friend-items-empty">
+            <p>${escHtml(user.name)} henüz kimseyi takip etmiyor.</p>
+          </div>
+        ` : followingUsers.map(fu => {
+          const isTargetMe = fu.id === currentUserId || (currentUsername && fu.username.toLowerCase() === currentUsername);
+          const amIFollowing = following.has(fu.id) || following.has(fu.username);
+          return `
+            <div class="friend-follow-user-card">
+              <div class="follow-user-avatar-wrap" onclick="openFriendProfile('${fu.id}')">
+                ${fu.avatar
+                  ? `<img src="${fu.avatar}" alt="${escHtml(fu.name)}" class="follow-user-avatar">`
+                  : `<div class="follow-user-initials">${fu.name.slice(0,2).toUpperCase()}</div>`
+                }
+              </div>
+              <div class="follow-user-info" onclick="openFriendProfile('${fu.id}')">
+                <div class="follow-user-name">${escHtml(fu.name)}</div>
+                <div class="follow-user-handle">@${fu.username}</div>
+                <div class="follow-user-stats">${(fu.stats?.movies || 0) + (fu.stats?.series || 0)} İçerik • ★ ${fu.stats?.avgRating || '0.0'}</div>
+              </div>
+              <div class="follow-user-action">
+                ${isTargetMe ? `
+                  <span class="badge badge-watching" style="font-size:10px">SEN</span>
+                ` : `
+                  <button type="button" class="btn ${amIFollowing ? 'btn-secondary' : 'btn-primary'} btn-xs" onclick="event.stopPropagation(); toggleFollowUser('${fu.id}')">
+                    <i data-lucide="${amIFollowing ? 'check' : 'plus'}" class="icon-xxs"></i>
+                    <span>${amIFollowing ? 'Takipte' : 'Takip Et'}</span>
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else if (curFilter === 'followers') {
+    sectionContentHtml = `
+      <div class="friend-follow-users-grid">
+        ${!followerUsers.length ? `
+          <div class="friend-items-empty">
+            <p>${escHtml(user.name)} henüz bir takipçiye sahip değil.</p>
+          </div>
+        ` : followerUsers.map(fu => {
+          const isTargetMe = fu.id === currentUserId || (currentUsername && fu.username.toLowerCase() === currentUsername);
+          const amIFollowing = following.has(fu.id) || following.has(fu.username);
+          return `
+            <div class="friend-follow-user-card">
+              <div class="follow-user-avatar-wrap" onclick="openFriendProfile('${fu.id}')">
+                ${fu.avatar
+                  ? `<img src="${fu.avatar}" alt="${escHtml(fu.name)}" class="follow-user-avatar">`
+                  : `<div class="follow-user-initials">${fu.name.slice(0,2).toUpperCase()}</div>`
+                }
+              </div>
+              <div class="follow-user-info" onclick="openFriendProfile('${fu.id}')">
+                <div class="follow-user-name">${escHtml(fu.name)}</div>
+                <div class="follow-user-handle">@${fu.username}</div>
+                <div class="follow-user-stats">${(fu.stats?.movies || 0) + (fu.stats?.series || 0)} İçerik • ★ ${fu.stats?.avgRating || '0.0'}</div>
+              </div>
+              <div class="follow-user-action">
+                ${isTargetMe ? `
+                  <span class="badge badge-watching" style="font-size:10px">SEN</span>
+                ` : `
+                  <button type="button" class="btn ${amIFollowing ? 'btn-secondary' : 'btn-primary'} btn-xs" onclick="event.stopPropagation(); toggleFollowUser('${fu.id}')">
+                    <i data-lucide="${amIFollowing ? 'check' : 'plus'}" class="icon-xxs"></i>
+                    <span>${amIFollowing ? 'Takipte' : 'Takip Et'}</span>
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  let sectionTitle = '';
+  if (curFilter === 'tv') sectionTitle = `${escHtml(user.name.split(' ')[0])}'in İzlediği Diziler (${seriesItems.length})`;
+  else if (curFilter === 'movie') sectionTitle = `${escHtml(user.name.split(' ')[0])}'in İzlediği Filmler (${movieItems.length})`;
+  else if (curFilter === 'following') sectionTitle = `${escHtml(user.name.split(' ')[0])}'in Takip Ettiği Kişiler (${followingUsers.length})`;
+  else if (curFilter === 'followers') sectionTitle = `${escHtml(user.name.split(' ')[0])}'in Takipçileri (${followerUsers.length})`;
+
+  let sectionIcon = 'tv';
+  if (curFilter === 'movie') sectionIcon = 'film';
+  else if (curFilter === 'following') sectionIcon = 'user-check';
+  else if (curFilter === 'followers') sectionIcon = 'users';
+
+  bodyEl.innerHTML = `
+    <!-- Modal Hero Banner -->
+    <div class="friend-modal-banner">
+      <button type="button" class="modal-banner-close-btn" onclick="closeFriendModal()" aria-label="Kapat">
+        <i data-lucide="x" class="icon-sm"></i>
+      </button>
+      <div class="friend-banner-glow"></div>
+    </div>
+
+    <!-- Modal Content Wrap -->
+    <div class="friend-modal-content-wrap">
+      <!-- Profile Header Row -->
+      <div class="friend-profile-hero">
+        <div class="friend-hero-avatar-wrap">
+          ${user.avatar
+            ? `<img src="${user.avatar}" alt="${escHtml(user.name)}" class="friend-hero-avatar">`
+            : `<div class="friend-hero-initials">${user.name.slice(0,2).toUpperCase()}</div>`
+          }
+        </div>
+
+        <div class="friend-hero-details">
+          <div class="friend-hero-top-row">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <h2 class="friend-hero-name" id="friend-modal-name">${escHtml(user.name)}</h2>
+                ${isMe ? `<span class="badge badge-watching" style="font-size:10px">SENİN PROFİLİN</span>` : ''}
+              </div>
+              <span class="friend-hero-handle">@${user.username}</span>
+              ${user.role ? `<span class="friend-card-badge">${user.role}</span>` : ''}
+            </div>
+
+            ${isMe ? `
+              <button type="button" class="btn btn-secondary btn-sm" onclick="closeFriendModal(); showTab('profile')">
+                <i data-lucide="edit-3" class="icon-xs"></i>
+                <span>Profili Düzenle</span>
+              </button>
+            ` : `
+              <button type="button" class="btn ${isFollowing ? 'btn-secondary btn-unfollow' : 'btn-primary'} btn-sm" onclick="toggleFollowUser('${user.id}')">
+                <i data-lucide="${isFollowing ? 'user-check' : 'user-plus'}" class="icon-xs"></i>
+                <span>${isFollowing ? 'Takip Ediliyor' : 'Takip Et'}</span>
+              </button>
+            `}
+          </div>
+
+          <p class="friend-hero-bio">${escHtml(user.bio)}</p>
+
+          <!-- Stat Strip (Clickable tabs) -->
+          <div class="friend-hero-stats-row">
+            <div class="hero-stat-card clickable-stat-card ${curFilter === 'tv' ? 'active-stat' : ''}" onclick="filterFriendModalList('tv')" title="Dizileri Gör">
+              <span class="h-stat-num">${user.stats?.series || seriesItems.length}</span>
+              <span class="h-stat-label">Dizi</span>
+            </div>
+            <div class="hero-stat-card clickable-stat-card ${curFilter === 'movie' ? 'active-stat' : ''}" onclick="filterFriendModalList('movie')" title="Filmleri Gör">
+              <span class="h-stat-num">${user.stats?.movies || movieItems.length}</span>
+              <span class="h-stat-label">Film</span>
+            </div>
+            <div class="hero-stat-card clickable-stat-card ${curFilter === 'following' ? 'active-stat' : ''}" onclick="filterFriendModalList('following')" title="Takip Edilenleri Gör">
+              <span class="h-stat-num">${followingUsers.length}</span>
+              <span class="h-stat-label">Takip Edilen</span>
+            </div>
+            <div class="hero-stat-card clickable-stat-card ${curFilter === 'followers' ? 'active-stat' : ''}" onclick="filterFriendModalList('followers')" title="Takipçileri Gör">
+              <span class="h-stat-num">${followerUsers.length}</span>
+              <span class="h-stat-label">Takipçi</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Watchlist Section Header -->
+      <div class="friend-watchlist-section-header">
+        <h3 class="friend-section-title">
+          <i data-lucide="${sectionIcon}" class="icon-sm"></i>
+          <span>${sectionTitle}</span>
+        </h3>
+
+        <!-- Filter Pills: TV, Movies, Following, Followers -->
+        <div class="friend-filter-pills">
+          <button type="button" class="f-pill ${curFilter === 'tv' ? 'active' : ''}" onclick="filterFriendModalList('tv')">
+            <i data-lucide="tv" class="icon-xxs" style="margin-right:3px"></i>
+            Diziler (${seriesItems.length})
+          </button>
+          <button type="button" class="f-pill ${curFilter === 'movie' ? 'active' : ''}" onclick="filterFriendModalList('movie')">
+            <i data-lucide="film" class="icon-xxs" style="margin-right:3px"></i>
+            Filmler (${movieItems.length})
+          </button>
+          <button type="button" class="f-pill ${curFilter === 'following' ? 'active' : ''}" onclick="filterFriendModalList('following')">
+            <i data-lucide="user-check" class="icon-xxs" style="margin-right:3px"></i>
+            Takip Ettikleri (${followingUsers.length})
+          </button>
+          <button type="button" class="f-pill ${curFilter === 'followers' ? 'active' : ''}" onclick="filterFriendModalList('followers')">
+            <i data-lucide="users" class="icon-xxs" style="margin-right:3px"></i>
+            Takipçileri (${followerUsers.length})
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Section Content -->
+      ${sectionContentHtml}
     </div>
   `;
 

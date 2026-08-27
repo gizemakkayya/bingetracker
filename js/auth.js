@@ -37,10 +37,10 @@ export async function signOut() {
 }
 
 // ── Update Profile ───────────────────────────────────────────────────────────
-export async function updateProfile(userId, { username }) {
+export async function updateProfile(userId, updates = {}) {
   const { error } = await supabase
     .from('profiles')
-    .update({ username })
+    .update(updates)
     .eq('id', userId);
   if (error) throw error;
 }

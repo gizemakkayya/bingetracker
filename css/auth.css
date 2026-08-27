@@ -347,6 +347,76 @@ form.hidden,
   background: rgba(255, 255, 255, 0.1) !important;
 }
 
+/* ── Remember Me & Options Row ─────────────────────── */
+.auth-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: -2px;
+  margin-bottom: 14px;
+  padding: 0 2px;
+}
+
+.custom-checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.checkbox-custom-box {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: rgba(4, 8, 6, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.custom-checkbox-wrap:hover .checkbox-custom-box {
+  border-color: rgba(16, 185, 129, 0.65);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.custom-checkbox:checked + .checkbox-custom-box {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+}
+
+.icon-xxs {
+  width: 11px;
+  height: 11px;
+  stroke-width: 3;
+}
+
+.checkbox-label-text {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  transition: color 0.15s ease;
+}
+
+.custom-checkbox-wrap:hover .checkbox-label-text {
+  color: #ffffff;
+}
+
 /* ── Submit Action Button ──────────────────────────── */
 .auth-submit-btn {
   width: 100%;
@@ -535,208 +605,4 @@ form.hidden,
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   CINEMATIC INTRO SPLASH OVERLAY (PROJE MÜDÜRÜ TRIBUTE)
-   ═══════════════════════════════════════════════════════ */
-.intro-splash-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: radial-gradient(
-    circle at center,
-    rgba(2, 8, 5, 0.4) 0%,
-    rgba(2, 6, 4, 0.72) 55%,
-    rgba(1, 4, 3, 0.92) 100%
-  );
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0.8s ease;
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.intro-splash-overlay.dismissed {
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(1.08);
-  pointer-events: none;
-}
-
-.intro-splash-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  max-width: 440px;
-  width: 100%;
-  animation: splashPopIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes splashPopIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.85) translateY(24px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.intro-avatar-wrapper {
-  position: relative;
-  margin-bottom: 22px;
-}
-
-.intro-avatar-glow {
-  position: absolute;
-  inset: -14px;
-  border-radius: 30px;
-  background: linear-gradient(135deg, #10b981 0%, #34d399 45%, #059669 100%);
-  filter: blur(20px);
-  opacity: 0.7;
-  animation: pulseGlow 2.8s ease-in-out infinite alternate;
-}
-
-@keyframes pulseGlow {
-  0% { opacity: 0.45; filter: blur(14px); transform: scale(0.95); }
-  100% { opacity: 0.9; filter: blur(24px); transform: scale(1.05); }
-}
-
-.intro-avatar-frame {
-  position: relative;
-  width: 180px;
-  height: 240px;
-  border-radius: 24px;
-  overflow: hidden;
-  border: 3px solid rgba(255, 255, 255, 0.35);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9),
-              inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  background: #020806;
-}
-
-.intro-avatar-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top center;
-  transition: transform 0.4s ease;
-}
-
-.intro-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 15px;
-  background: rgba(16, 185, 129, 0.18);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #6ee7b7;
-  margin-bottom: 14px;
-  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.25);
-  backdrop-filter: blur(8px);
-}
-
-.intro-tribute-text {
-  font-family: 'Plus Jakarta Sans', var(--font-sans);
-  font-size: 1.35rem;
-  font-weight: 800;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: #ffffff;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.9), 0 0 35px rgba(16, 185, 129, 0.35);
-  margin-bottom: 20px;
-}
-
-.intro-tribute-highlight {
-  background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 50%, #34d399 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  display: block;
-  font-size: 1.45rem;
-  margin-top: 4px;
-}
-
-.intro-progress-bar-wrap {
-  width: 220px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 9999px;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-.intro-progress-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7);
-  border-radius: 9999px;
-  animation: introFill 3.4s linear forwards;
-}
-
-@keyframes introFill {
-  0% { width: 0%; }
-  100% { width: 100%; }
-}
-
-.intro-skip-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
-  padding: 6px 18px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(8px);
-  transition: all 0.22s ease;
-}
-
-.intro-skip-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: scale(1.05);
-}
-
-@media (max-width: 480px) {
-  .intro-avatar-frame {
-    width: 145px;
-    height: 195px;
-    border-radius: 20px;
-  }
-  .intro-tribute-text {
-    font-size: 1.12rem;
-    padding: 0 8px;
-    margin-bottom: 16px;
-  }
-  .intro-tribute-highlight {
-    font-size: 1.2rem;
-  }
-  .intro-badge {
-    font-size: 10px;
-    padding: 4px 12px;
-    margin-bottom: 10px;
-  }
-  .intro-progress-bar-wrap {
-    width: 180px;
-    margin-bottom: 12px;
-  }
-}
 

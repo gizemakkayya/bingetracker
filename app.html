@@ -265,8 +265,9 @@
       </div>
 
       <button class="user-avatar-btn" id="user-menu-btn" aria-haspopup="true" aria-expanded="false">
-        <div class="user-avatar" aria-hidden="true">
+        <div class="user-avatar" id="navbar-user-avatar-wrap" aria-hidden="true">
           <span id="user-initials">–</span>
+          <img src="" id="navbar-user-avatar-img" class="navbar-avatar-img hidden" alt="User Avatar">
         </div>
         <span id="user-name-display"></span>
         <span style="font-size:.7rem;color:var(--clr-text-muted)">▾</span>
@@ -583,9 +584,25 @@
       <div class="profile-layout">
         <!-- Left card -->
         <div class="profile-card">
-          <div class="profile-avatar-wrap">
+          <div class="profile-avatar-wrap" id="profile-avatar-container">
             <div class="profile-avatar" id="profile-avatar-initials">–</div>
+            <img src="" id="profile-avatar-img" class="profile-avatar-img hidden" alt="Profil Fotoğrafı">
+            <button type="button" class="profile-avatar-edit-overlay" id="profile-avatar-edit-btn" onclick="openAvatarModal()" title="Fotoğrafı Değiştir">
+              <i data-lucide="camera" class="icon-sm"></i>
+            </button>
           </div>
+
+          <div class="profile-avatar-actions-row">
+            <button type="button" class="btn btn-secondary btn-xs" onclick="openAvatarModal()">
+              <i data-lucide="camera" class="icon-xxs"></i>
+              <span>Fotoğrafı Değiştir</span>
+            </button>
+            <button type="button" class="btn btn-ghost btn-xs btn-remove-avatar hidden" id="btn-remove-avatar" onclick="removeAvatar()" title="Fotoğrafı Kaldır">
+              <i data-lucide="trash-2" class="icon-xxs"></i>
+              <span>Kaldır</span>
+            </button>
+          </div>
+
           <div class="profile-name" id="profile-display-name">—</div>
           <div class="profile-email" id="profile-email">—</div>
 
@@ -665,6 +682,111 @@
 </div>
 
 <!-- ════════════════════════════════════════════════
+     AVATAR SELECTOR MODAL
+════════════════════════════════════════════════ -->
+<div class="modal-backdrop hidden" id="avatar-modal-backdrop" role="dialog"
+  aria-modal="true" aria-labelledby="avatar-modal-title">
+  <div class="modal avatar-modal" id="avatar-modal-card">
+    <div class="avatar-modal-header">
+      <div class="avatar-modal-title-row">
+        <div class="avatar-title-icon"><i data-lucide="camera" class="icon-sm"></i></div>
+        <h3 id="avatar-modal-title" class="avatar-modal-title">Profil Fotoğrafı Seç</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeAvatarModal()" aria-label="Kapat">
+        <i data-lucide="x" class="icon-sm"></i>
+      </button>
+    </div>
+
+    <div class="avatar-modal-body">
+      <!-- Tabs: Preset Avatars, File Upload, URL -->
+      <div class="avatar-modal-tabs">
+        <button type="button" class="avatar-tab-btn active" id="avatar-tab-presets" onclick="switchAvatarTab('presets')">
+          <i data-lucide="sparkles" class="icon-xxs"></i>
+          <span>Hazır Karakterler</span>
+        </button>
+        <button type="button" class="avatar-tab-btn" id="avatar-tab-upload" onclick="switchAvatarTab('upload')">
+          <i data-lucide="upload" class="icon-xxs"></i>
+          <span>Cihazdan Yükle</span>
+        </button>
+        <button type="button" class="avatar-tab-btn" id="avatar-tab-url" onclick="switchAvatarTab('url')">
+          <i data-lucide="link" class="icon-xxs"></i>
+          <span>Resim Linki</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Presets -->
+      <div class="avatar-tab-pane" id="avatar-pane-presets">
+        <!-- Search and Category Filters -->
+        <div class="avatar-preset-controls">
+          <div class="avatar-preset-search-wrap">
+            <i data-lucide="search" class="icon-xxs avatar-preset-search-icon"></i>
+            <input type="text" id="avatar-preset-search" class="avatar-preset-search-input" placeholder="Karakter veya dizi/film ara... (Örn: Walter, Batman)" oninput="filterAvatarPresets()">
+          </div>
+          <div class="avatar-preset-filter-pills">
+            <button type="button" class="av-pill active" data-av-cat="all" onclick="filterAvatarPresetsCategory('all')">Tümü</button>
+            <button type="button" class="av-pill" data-av-cat="series" onclick="filterAvatarPresetsCategory('series')">Diziler</button>
+            <button type="button" class="av-pill" data-av-cat="movies" onclick="filterAvatarPresetsCategory('movies')">Filmler</button>
+            <button type="button" class="av-pill" data-av-cat="hero" onclick="filterAvatarPresetsCategory('hero')">Süper Kahraman</button>
+            <button type="button" class="av-pill" data-av-cat="anime" onclick="filterAvatarPresetsCategory('anime')">Anime & Çizgi</button>
+          </div>
+        </div>
+
+        <div class="avatar-presets-grid" id="avatar-presets-grid">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+
+      <!-- Tab 2: Upload -->
+      <div class="avatar-tab-pane hidden" id="avatar-pane-upload">
+        <div class="avatar-upload-dropzone" id="avatar-upload-dropzone" onclick="document.getElementById('avatar-file-input').click()">
+          <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="handleAvatarFileSelect(event)">
+          <div class="dropzone-icon">
+            <i data-lucide="image-plus" class="icon-lg"></i>
+          </div>
+          <div class="dropzone-text">
+            <strong>Fotoğraf seçmek için tıklayın</strong>
+            <span>veya buraya sürükleyip bırakın (PNG, JPG, WebP)</span>
+          </div>
+        </div>
+
+        <div class="avatar-preview-box hidden" id="avatar-upload-preview-box">
+          <div class="avatar-preview-circle">
+            <img src="" id="avatar-upload-preview-img" alt="Önizleme">
+          </div>
+          <div class="avatar-preview-meta">
+            <span class="avatar-preview-name" id="avatar-upload-file-name">fotograf.jpg</span>
+            <button type="button" class="btn btn-primary btn-sm" onclick="applyUploadedAvatar()">
+              <i data-lucide="check" class="icon-xs"></i>
+              <span>Bu Fotoğrafı Kullan</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: URL -->
+      <div class="avatar-tab-pane hidden" id="avatar-pane-url">
+        <p class="avatar-tab-desc">Web'den herhangi bir görsel bağlantısı yapıştırın:</p>
+        <div class="form-group">
+          <div class="input-field-wrap">
+            <input type="url" id="avatar-url-input" class="form-input" placeholder="https://images.unsplash.com/... veya doğrudan resim linki" oninput="handleAvatarUrlPreview(this.value)">
+          </div>
+        </div>
+
+        <div class="avatar-preview-box hidden" id="avatar-url-preview-box" style="margin-top:12px">
+          <div class="avatar-preview-circle">
+            <img src="" id="avatar-url-preview-img" alt="URL Önizleme" onerror="this.parentElement.parentElement.classList.add('hidden')">
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="applyUrlAvatar()">
+            <i data-lucide="check" class="icon-xs"></i>
+            <span>Bağlantıyı Kaydet</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
      CELEBRATION / FIREWORKS OVERLAY
 ════════════════════════════════════════════════ -->
 <div id="celebration-overlay" class="celebration-overlay hidden">
@@ -686,6 +808,6 @@
 <!-- Toast container -->
 <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
-<script type="module" src="js/app.js?v=5.4"></script>
+<script type="module" src="js/app.js?v=5.8"></script>
 </body>
 </html>
